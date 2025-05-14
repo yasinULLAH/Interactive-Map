@@ -1,0 +1,2222 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sacred Sites Atlas (MyData)</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary: #1a3e59;
+            --accent: #c89b3c;
+            --light: #f4efe4;
+            --dark: #1a1a1a;
+            --text: #333;
+            --success: #4caf50;
+            --danger: #f44336;
+            --warning: #ff9800;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Amiri', 'Scheherazade New', serif;
+        }
+
+        body {
+            background-color: var(--dark);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cGF0aCBmaWxsPSJub25lIiBzdHJva2U9IiMyMjIiIHN0cm9rZS13aWR0aD0iMC41IiBkPSJNMjUsMjUgTDc1LDI1IEw3NSw3NSBMMjUsNzUgWiIvPjwvc3ZnPg==');
+        }
+
+        @font-face {
+            font-family: 'Amiri';
+            src: url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+        }
+
+        @font-face {
+            font-family: 'Scheherazade New';
+            src: url('https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap');
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 320px;
+            background: rgba(20, 29, 38, 0.9);
+            backdrop-filter: blur(10px);
+            color: var(--light);
+            height: 100%;
+            overflow-y: auto;
+            padding: 1rem;
+            border-right: 1px solid rgba(200, 155, 60, 0.3);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar-collapsed {
+            transform: translateX(-320px);
+        }
+
+        .sidebar-toggle {
+            position: absolute;
+            top: 1rem;
+            left: 320px;
+            background: rgba(20, 29, 38, 0.9);
+            color: var(--light);
+            border: 1px solid rgba(200, 155, 60, 0.3);
+            width: 40px;
+            height: 40px;
+            border-radius: 0 4px 4px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: left 0.3s ease;
+        }
+
+        .toggle-collapsed {
+            left: 0;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            background: #0d1115;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            color: var(--accent);
+            margin: 0;
+            text-shadow: 0 0 10px rgba(200, 155, 60, 0.5);
+        }
+
+        .logo p {
+            font-size: 0.8rem;
+            color: rgba(244, 239, 228, 0.7);
+        }
+
+        .search-box {
+            margin-bottom: 1rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.5rem;
+            background: rgba(244, 239, 228, 0.1);
+            border: 1px solid rgba(200, 155, 60, 0.3);
+            color: var(--light);
+            border-radius: 4px;
+        }
+
+        .filter-section {
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(200, 155, 60, 0.3);
+            padding-bottom: 1rem;
+        }
+
+        .filter-section h3 {
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .filter-btn {
+            background: rgba(200, 155, 60, 0.2);
+            color: var(--light);
+            border: 1px solid rgba(200, 155, 60, 0.3);
+            padding: 0.3rem 0.7rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: rgba(200, 155, 60, 0.7);
+            color: var(--dark);
+        }
+
+        .sites-list {
+            margin-top: 1rem;
+        }
+
+        .site-item {
+            background: rgba(244, 239, 228, 0.1);
+            border-left: 3px solid var(--accent);
+            padding: 0.7rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .site-item:hover {
+            background: rgba(244, 239, 228, 0.2);
+            transform: translateX(3px);
+        }
+
+        .site-name {
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 0.2rem;
+            font-size: 0.9rem;
+        }
+
+        .site-type {
+            font-size: 0.7rem;
+            color: rgba(244, 239, 228, 0.6);
+        }
+
+        .add-btn {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--accent);
+            color: var(--dark);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(200, 155, 60, 0.7);
+            z-index: 900;
+            transition: all 0.3s;
+        }
+
+        .add-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(200, 155, 60, 0.9);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--dark);
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 2rem;
+            position: relative;
+            color: var(--light);
+            box-shadow: 0 0 30px rgba(200, 155, 60, 0.5);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            color: var(--light);
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--accent);
+            font-size: 0.9rem;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 0.7rem;
+            background: rgba(244, 239, 228, 0.1);
+            border: 1px solid rgba(200, 155, 60, 0.3);
+            color: var(--light);
+            border-radius: 4px;
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 0.7rem 1.2rem;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--dark);
+        }
+
+        .btn-primary:hover {
+            background: rgba(200, 155, 60, 0.8);
+        }
+
+        .btn-secondary {
+            background: rgba(244, 239, 228, 0.2);
+            color: var(--light);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(244, 239, 228, 0.3);
+        }
+
+        .site-detail-modal .site-info {
+            margin-bottom: 1.5rem;
+        }
+
+        .site-detail-modal h2 {
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(200, 155, 60, 0.3);
+            padding-bottom: 0.5rem;
+        }
+
+        .site-detail-modal .info-block {
+            margin-bottom: 1.5rem;
+        }
+
+        .site-detail-modal .info-block h3 {
+            color: var(--light);
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .site-detail-modal .info-block p {
+            color: rgba(244, 239, 228, 0.8);
+            line-height: 1.6;
+        }
+
+        .photo-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .gallery-item {
+            height: 120px;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .delete-photo {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(244, 67, 54, 0.7);
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .file-upload {
+            display: block;
+            width: 100%;
+            padding: 0.7rem;
+            background: rgba(244, 239, 228, 0.1);
+            border: 1px solid rgba(200, 155, 60, 0.3);
+            color: var(--light);
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+
+        .trail-section {
+            margin-top: 1rem;
+        }
+
+        .trail-item {
+            background: rgba(200, 155, 60, 0.1);
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .trail-name {
+            font-weight: bold;
+        }
+
+        .trail-sites {
+            font-size: 0.8rem;
+            color: rgba(244, 239, 228, 0.6);
+        }
+
+        .trail-container {
+            margin-bottom: 1rem;
+        }
+
+        .trail-select {
+            width: 100%;
+            padding: 0.5rem;
+            background: rgba(244, 239, 228, 0.1);
+            border: 1px solid rgba(200, 155, 60, 0.3);
+            color: var(--light);
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .leaflet-container {
+            background: #0d1115;
+            outline: 0;
+        }
+
+        .leaflet-container .leaflet-control-attribution {
+            background: rgba(20, 29, 38, 0.7);
+            color: rgba(244, 239, 228, 0.5);
+        }
+
+        .custom-marker {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 30px;
+            height: 30px;
+            background: rgba(200, 155, 60, 0.7);
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(200, 155, 60, 0.9);
+        }
+
+        .custom-marker.masjid {
+            background: rgba(76, 175, 80, 0.7);
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.9);
+        }
+
+        .custom-marker.tomb {
+            background: rgba(156, 39, 176, 0.7);
+            box-shadow: 0 0 10px rgba(156, 39, 176, 0.9);
+        }
+
+        .custom-marker.historical {
+            background: rgba(33, 150, 243, 0.7);
+            box-shadow: 0 0 10px rgba(33, 150, 243, 0.9);
+        }
+
+        .custom-marker.other {
+            background: rgba(255, 152, 0, 0.7);
+            box-shadow: 0 0 10px rgba(255, 152, 0, 0.9);
+        }
+
+        .site-icon {
+            color: white;
+            font-size: 16px;
+        }
+
+        .offline-alert {
+            background: rgba(244, 67, 54, 0.2);
+            color: var(--light);
+            padding: 0.5rem;
+            text-align: center;
+            font-size: 0.8rem;
+            display: none;
+        }
+
+        .offline-alert.show {
+            display: block;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: rgba(20, 29, 38, 0.9);
+            color: var(--light);
+            border-radius: 4px;
+            border: 1px solid rgba(200, 155, 60, 0.3);
+        }
+
+        .leaflet-popup-tip {
+            background: rgba(20, 29, 38, 0.9);
+            border: 1px solid rgba(200, 155, 60, 0.3);
+        }
+
+        .popup-title {
+            color: var(--accent);
+            font-weight: bold;
+            margin-bottom: 5px;
+            border-bottom: 1px solid rgba(200, 155, 60, 0.3);
+            padding-bottom: 5px;
+        }
+
+        .popup-type {
+            font-size: 0.8rem;
+            color: rgba(244, 239, 228, 0.6);
+            margin-bottom: 5px;
+        }
+
+        .popup-btns {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .popup-btn {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .popup-btn.view {
+            background: rgba(200, 155, 60, 0.3);
+            color: var(--light);
+        }
+
+        .popup-btn.view:hover {
+            background: rgba(200, 155, 60, 0.5);
+        }
+
+        .theme-selector {
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .theme-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .theme-option:hover, .theme-option.active {
+            transform: scale(1.1);
+            border-color: var(--accent);
+        }
+
+        .theme-classic {
+            background: linear-gradient(45deg, #d2b48c, #8b4513);
+        }
+
+        .theme-modern {
+            background: linear-gradient(45deg, #1a3e59, #0d1115);
+        }
+
+        .theme-spiritual {
+            background: linear-gradient(45deg, #4a2c40, #242038);
+        }
+
+        .theme-desert {
+            background: linear-gradient(45deg, #e9b872, #c17e61);
+        }
+
+        .actions-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 280px;
+            }
+            
+            .sidebar-toggle {
+                left: 280px;
+            }
+            
+            .add-btn {
+                width: 50px;
+                height: 50px;
+                bottom: 1rem;
+                right: 1rem;
+            }
+            
+            .modal-content {
+                padding: 1.5rem;
+            }
+            
+            .form-group {
+                margin-bottom: 0.8rem;
+            }
+            
+            .btn {
+                padding: 0.6rem 1rem;
+            }
+        }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 20000;
+            flex-direction: column;
+        }
+
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 8px solid rgba(200, 155, 60, 0.2);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 2rem;
+        }
+
+        .loading-text {
+            color: var(--light);
+            font-size: 1.2rem;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .quran-snippet {
+            background: rgba(200, 155, 60, 0.1);
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+            font-style: italic;
+            position: relative;
+        }
+
+        .quran-text {
+            text-align: right;
+            direction: rtl;
+            font-family: 'Scheherazade New', serif;
+            font-size: 1.2rem;
+            line-height: 1.8;
+            margin-bottom: 0.5rem;
+            color: var(--light);
+        }
+
+        .quran-translation {
+            color: rgba(244, 239, 228, 0.8);
+            font-size: 0.9rem;
+        }
+
+        .quran-reference {
+            color: var(--accent);
+            font-size: 0.8rem;
+            text-align: right;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+<div class="loading">
+<div class="loading-spinner"></div>
+<div class="loading-text">Loading Sacred Sites Atlas...</div>
+</div>
+
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="logo">
+                <h1>Sacred Sites Atlas</h1>
+                <p>Your Personal Islamic Heritage Journey</p>
+            </div>
+    
+            <div class="offline-alert">
+                You are currently offline. Your data is saved locally.
+            </div>
+    
+            <div class="theme-selector">
+                <div class="theme-option theme-classic" data-theme="classic" title="Classical"></div>
+                <div class="theme-option theme-modern active" data-theme="modern" title="Modern"></div>
+                <div class="theme-option theme-spiritual" data-theme="spiritual" title="Spiritual"></div>
+                <div class="theme-option theme-desert" data-theme="desert" title="Desert"></div>
+            </div>
+    
+            <div class="search-box">
+                <input type="text" class="search-input" placeholder="Search sites..." id="searchInput">
+            </div>
+    
+            <div class="filter-section">
+                <h3>Filter by Type</h3>
+                <div class="filter-group type-filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="masjid">Masjids</button>
+                    <button class="filter-btn" data-filter="tomb">Tombs</button>
+                    <button class="filter-btn" data-filter="historical">Historical</button>
+                    <button class="filter-btn" data-filter="other">Other</button>
+                </div>
+    
+                <h3>Filter by Status</h3>
+                <div class="filter-group status-filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="visited">Visited</button>
+                    <button class="filter-btn" data-filter="not-visited">Not Visited</button>
+                </div>
+            </div>
+    
+            <div class="trail-container">
+                <h3>Pilgrimage Trails</h3>
+                <select class="trail-select" id="trailSelect">
+                    <option value="">Select a trail</option>
+                </select>
+                <button class="btn btn-secondary" id="createTrailBtn" style="width: 100%;">Create New Trail</button>
+            </div>
+    
+            <div class="sites-list" id="sitesList">
+                <!-- Sites will be populated here -->
+            </div>
+        </div>
+    
+        <div class="sidebar-toggle">
+            <span>≡</span>
+        </div>
+    
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+    
+        <div class="add-btn" id="addSiteBtn">+</div>
+    </div>
+    
+    <!-- Add Site Modal -->
+    <div class="modal" id="addSiteModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeAddModal">&times;</button>
+            <h2 style="color: var(--accent); margin-bottom: 1.5rem;">Add Sacred Site</h2>
+            <form id="addSiteForm">
+                <div class="form-group">
+                    <label class="form-label">Site Name</label>
+                    <input type="text" class="form-input" id="siteName" required>
+                </div>
+    
+                <div class="form-group">
+                    <label class="form-label">Type</label>
+                    <select class="form-select" id="siteType" required>
+                        <option value="masjid">Masjid</option>
+                        <option value="tomb">Tomb of Scholar</option>
+                        <option value="historical">Historical Site</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+    
+                <div class="form-group">
+                    <label class="form-label">Location (click on map or enter coordinates)</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" step="any" class="form-input" id="siteLat" placeholder="Latitude" required>
+                        <input type="number" step="any" class="form-input" id="siteLng" placeholder="Longitude" required>
+                    </div>
+                </div>
+    
+                <div class="form-group">
+                    <label class="form-label">Historical Significance</label>
+                    <textarea class="form-textarea" id="siteSignificance"></textarea>
+                </div>
+    
+                <div class="form-group">
+                    <label class="form-label">Related Duas/Practices</label>
+                    <textarea class="form-textarea" id="siteDuas"></textarea>
+                </div>
+    
+                <div class="form-group">
+                    <label class="form-label">Personal Visit Notes</label>
+                    <textarea class="form-textarea" id="siteVisitNotes"></textarea>
+                </div>
+    
+                <div class="form-group">
+                    <label class="form-label">Quran/Hadith Reference</label>
+                    <textarea class="form-textarea" id="siteQuranHadith"></textarea>
+                </div>
+    
+                <div class="form-group">
+                    <label class="form-label">Have you visited this site?</label>
+                    <div style="display: flex; gap: 20px;">
+                        <label>
+                            <input type="radio" name="visited" value="yes" id="visitedYes"> Yes
+                        </label>
+                        <label>
+                            <input type="radio" name="visited" value="no" id="visitedNo" checked> No
+                        </label>
+                    </div>
+                </div>
+    
+                <div class="form-group">
+                    <label class="form-label">Add Photos</label>
+                    <input type="file" id="sitePhotos" class="file-upload" accept="image/*" multiple>
+                </div>
+    
+                <div class="actions-row">
+                    <button type="button" class="btn btn-secondary" id="cancelAddSite">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Site</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Site Detail Modal -->
+    <div class="modal site-detail-modal" id="siteDetailModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeSiteDetailModal">&times;</button>
+            <div id="siteDetailContent">
+                <!-- Site details will be populated here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Create Trail Modal -->
+    <div class="modal" id="createTrailModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeTrailModal">&times;</button>
+            <h2 style="color: var(--accent); margin-bottom: 1.5rem;">Create Pilgrimage Trail</h2>
+            <form id="createTrailForm">
+                <div class="form-group">
+                    <label class="form-label">Trail Name</label>
+                    <input type="text" class="form-input" id="trailName" required>
+                </div>
+    
+                <div class="form-group">
+                    <label class="form-label">Trail Description</label>
+                    <textarea class="form-textarea" id="trailDescription"></textarea>
+                </div>
+    
+                <div class="form-group">
+                    <label class="form-label">Select Sites for Trail</label>
+                    <div id="trailSitesList" style="max-height: 200px; overflow-y: auto;">
+                        <!-- Sites checkboxes will be populated here -->
+                    </div>
+                </div>
+    
+                <div class="actions-row">
+                    <button type="button" class="btn btn-secondary" id="cancelCreateTrail">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Trail</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // IndexedDB Configuration
+        const DB_NAME = 'SacredSitesDB';
+        const DB_VERSION = 1;
+        const SITES_STORE = 'sites';
+        const TRAILS_STORE = 'trails';
+        let db;
+    
+        // DOM Elements
+        const el = (id) => document.getElementById(id);
+        const qs = (selector) => document.querySelector(selector);
+        const qsa = (selector) => document.querySelectorAll(selector);
+    
+        // App State
+        let map;
+        let markers = [];
+        let currentSite = null;
+        let currentTrail = null;
+        let activeFilters = {
+            type: 'all',
+            status: 'all'
+        };
+        let mapClickMode = false;
+        let dbReady = false;
+        let sitesList = [];
+        let trailsList = [];
+    
+        // Initialize IndexedDB
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                request.onerror = (event) => {
+                    console.error("Database error:", event.target.error);
+                    reject(event.target.error);
+                };
+                
+                request.onsuccess = (event) => {
+                    db = event.target.result;
+                    console.log("Database opened successfully");
+                    dbReady = true;
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    
+                    if (!db.objectStoreNames.contains(SITES_STORE)) {
+                        const siteStore = db.createObjectStore(SITES_STORE, { keyPath: 'id', autoIncrement: true });
+                        siteStore.createIndex('name', 'name', { unique: false });
+                        siteStore.createIndex('type', 'type', { unique: false });
+                        siteStore.createIndex('visited', 'visited', { unique: false });
+                    }
+                    
+                    if (!db.objectStoreNames.contains(TRAILS_STORE)) {
+                        const trailStore = db.createObjectStore(TRAILS_STORE, { keyPath: 'id', autoIncrement: true });
+                        trailStore.createIndex('name', 'name', { unique: false });
+                    }
+                };
+            });
+        }
+    
+        // Database operations
+        const dbOps = {
+            addSite(site) {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([SITES_STORE], 'readwrite');
+                    const store = transaction.objectStore(SITES_STORE);
+                    const request = store.add(site);
+                    
+                    request.onsuccess = (event) => {
+                        resolve(event.target.result);
+                    };
+                    
+                    request.onerror = (event) => {
+                        reject(event.target.error);
+                    };
+                });
+            },
+            
+            getAllSites() {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([SITES_STORE], 'readonly');
+                    const store = transaction.objectStore(SITES_STORE);
+                    const request = store.getAll();
+                    
+                    request.onsuccess = (event) => {
+                        resolve(event.target.result);
+                    };
+                    
+                    request.onerror = (event) => {
+                        reject(event.target.error);
+                    };
+                });
+            },
+            
+            getSiteById(id) {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([SITES_STORE], 'readonly');
+                    const store = transaction.objectStore(SITES_STORE);
+                    const request = store.get(id);
+                    
+                    request.onsuccess = (event) => {
+                        resolve(event.target.result);
+                    };
+                    
+                    request.onerror = (event) => {
+                        reject(event.target.error);
+                    };
+                });
+            },
+            
+            updateSite(site) {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([SITES_STORE], 'readwrite');
+                    const store = transaction.objectStore(SITES_STORE);
+                    const request = store.put(site);
+                    
+                    request.onsuccess = (event) => {
+                        resolve(event.target.result);
+                    };
+                    
+                    request.onerror = (event) => {
+                        reject(event.target.error);
+                    };
+                });
+            },
+            
+            deleteSite(id) {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([SITES_STORE], 'readwrite');
+                    const store = transaction.objectStore(SITES_STORE);
+                    const request = store.delete(id);
+                    
+                    request.onsuccess = (event) => {
+                        resolve(event.target.result);
+                    };
+                    
+                    request.onerror = (event) => {
+                        reject(event.target.error);
+                    };
+                });
+            },
+            
+            addTrail(trail) {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([TRAILS_STORE], 'readwrite');
+                    const store = transaction.objectStore(TRAILS_STORE);
+                    const request = store.add(trail);
+                    
+                    request.onsuccess = (event) => {
+                        resolve(event.target.result);
+                    };
+                    
+                    request.onerror = (event) => {
+                        reject(event.target.error);
+                    };
+                });
+            },
+            
+            getAllTrails() {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([TRAILS_STORE], 'readonly');
+                    const store = transaction.objectStore(TRAILS_STORE);
+                    const request = store.getAll();
+                    
+                    request.onsuccess = (event) => {
+                        resolve(event.target.result);
+                    };
+                    
+                    request.onerror = (event) => {
+                        reject(event.target.error);
+                    };
+                });
+            },
+            
+            getTrailById(id) {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([TRAILS_STORE], 'readonly');
+                    const store = transaction.objectStore(TRAILS_STORE);
+                    const request = store.get(id);
+                    
+                    request.onsuccess = (event) => {
+                        resolve(event.target.result);
+                    };
+                    
+                    request.onerror = (event) => {
+                        reject(event.target.error);
+                    };
+                });
+            },
+            
+            updateTrail(trail) {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([TRAILS_STORE], 'readwrite');
+                    const store = transaction.objectStore(TRAILS_STORE);
+                    const request = store.put(trail);
+                    
+                    request.onsuccess = (event) => {
+                        resolve(event.target.result);
+                    };
+                    
+                    request.onerror = (event) => {
+                        reject(event.target.error);
+                    };
+                });
+            },
+            
+            deleteTrail(id) {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([TRAILS_STORE], 'readwrite');
+                    const store = transaction.objectStore(TRAILS_STORE);
+                    const request = store.delete(id);
+                    
+                    request.onsuccess = (event) => {
+                        resolve(event.target.result);
+                    };
+                    
+                    request.onerror = (event) => {
+                        reject(event.target.error);
+                    };
+                });
+            }
+        };
+    
+        // Initialize the map
+        function initMap() {
+            map = L.map('map', {
+                zoomControl: false,
+                attributionControl: true
+            }).setView([24.7136, 46.6753], 4); // Centered on Saudi Arabia
+    
+            // Add custom dark-themed tile layer
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(map);
+    
+            // Add zoom control to a specific position
+            L.control.zoom({
+                position: 'bottomright'
+            }).addTo(map);
+    
+            // Handle map click for adding new sites
+            map.on('click', function(e) {
+                if (mapClickMode) {
+                    el('siteLat').value = e.latlng.lat.toFixed(6);
+                    el('siteLng').value = e.latlng.lng.toFixed(6);
+                    mapClickMode = false;
+                    map.getContainer().style.cursor = '';
+                }
+            });
+        }
+    
+        // Create a custom marker
+        function createCustomMarker(site) {
+            let markerHTML = `<div class="custom-marker ${site.type}">
+                <span class="site-icon">${getIconForType(site.type)}</span>
+            </div>`;
+            
+            let icon = L.divIcon({
+                html: markerHTML,
+                className: '',
+                iconSize: [30, 40],
+                iconAnchor: [15, 40]
+            });
+            
+            let marker = L.marker([site.lat, site.lng], {
+                icon: icon,
+                title: site.name
+            });
+            
+            let popupContent = `
+                <div class="popup-title">${site.name}</div>
+                <div class="popup-type">${getTypeLabel(site.type)} | ${site.visited ? 'Visited' : 'Not Visited'}</div>
+                <div class="popup-btns">
+                    <div class="popup-btn view" data-id="${site.id}">View Details</div>
+                </div>
+            `;
+            
+            marker.bindPopup(popupContent);
+            marker.siteId = site.id;
+            markers.push(marker);
+            
+            // Add event listener to the view button in popup
+            marker.on('popupopen', function() {
+                setTimeout(() => {
+                    const viewBtn = document.querySelector('.popup-btn.view');
+                    if (viewBtn) {
+                        viewBtn.addEventListener('click', function() {
+                            const siteId = parseInt(this.getAttribute('data-id'));
+                            openSiteDetails(siteId);
+                        });
+                    }
+                }, 10);
+            });
+            
+            return marker;
+        }
+    
+        // Load sites from DB and display on map
+        function loadSites() {
+            clearMarkers();
+            
+            dbOps.getAllSites().then(sites => {
+                sitesList = sites;
+                sites.forEach(site => {
+                    if (shouldShowSite(site)) {
+                        let marker = createCustomMarker(site);
+                        marker.addTo(map);
+                    }
+                });
+                
+                renderSitesList();
+                populateTrailSitesList();
+            }).catch(error => {
+                console.error("Error loading sites:", error);
+            });
+        }
+    
+        // Clear all markers from the map
+        function clearMarkers() {
+            markers.forEach(marker => {
+                map.removeLayer(marker);
+            });
+            markers = [];
+        }
+    
+        // Render sites in the sidebar list
+        function renderSitesList() {
+            const sitesListEl = el('sitesList');
+            sitesListEl.innerHTML = '';
+            
+            const filteredSites = sitesList.filter(shouldShowSite);
+            
+            if (filteredSites.length === 0) {
+                sitesListEl.innerHTML = '<div style="color: var(--light); text-align: center; padding: 1rem;">No sites found matching your filters.</div>';
+                return;
+            }
+            
+            filteredSites.forEach(site => {
+                const siteEl = document.createElement('div');
+                siteEl.className = 'site-item';
+                siteEl.setAttribute('data-id', site.id);
+                
+                siteEl.innerHTML = `
+                    <div class="site-name">${site.name}</div>
+                    <div class="site-type">${getTypeLabel(site.type)} | ${site.visited ? 'Visited' : 'Not Visited'}</div>
+                `;
+                
+                siteEl.addEventListener('click', () => {
+                    openSiteDetails(site.id);
+                });
+                
+                sitesListEl.appendChild(siteEl);
+            });
+        }
+    
+        // Show site details
+        function openSiteDetails(siteId) {
+            dbOps.getSiteById(siteId).then(site => {
+                currentSite = site;
+                
+                const detailContent = el('siteDetailContent');
+                
+                let photosHTML = '';
+                if (site.photos && site.photos.length > 0) {
+                    photosHTML = '<div class="info-block"><h3>Photos</h3><div class="photo-gallery">';
+                    site.photos.forEach((photo, index) => {
+                        photosHTML += `
+                            <div class="gallery-item">
+                                <img src="${photo}" alt="${site.name} photo ${index + 1}">
+                            </div>
+                        `;
+                    });
+                    photosHTML += '</div></div>';
+                }
+                
+                let quranHTML = '';
+                if (site.quranHadith && site.quranHadith.trim()) {
+                    quranHTML = `
+                        <div class="info-block">
+                            <h3>Quran/Hadith Reference</h3>
+                            <div class="quran-snippet">
+                                ${site.quranHadith}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                detailContent.innerHTML = `
+                    <h2>${site.name}</h2>
+                    <div class="site-info">
+                        <p><strong>Type:</strong> ${getTypeLabel(site.type)}</p>
+                        <p><strong>Status:</strong> ${site.visited ? 'Visited' : 'Not Visited'}</p>
+                        <p><strong>Coordinates:</strong> ${site.lat.toFixed(6)}, ${site.lng.toFixed(6)}</p>
+                    </div>
+                    
+                    <div class="info-block">
+                        <h3>Historical Significance</h3>
+                        <p>${site.significance || 'No information provided.'}</p>
+                    </div>
+                    
+                    <div class="info-block">
+                        <h3>Related Duas/Practices</h3>
+                        <p>${site.duas || 'No information provided.'}</p>
+                    </div>
+                    
+                    <div class="info-block">
+                        <h3>Personal Visit Notes</h3>
+                        <p>${site.visitNotes || 'No information provided.'}</p>
+                    </div>
+                    
+                    ${quranHTML}
+                    ${photosHTML}
+                    
+                    <div class="actions-row">
+                        <button class="btn btn-secondary" id="editSiteBtn">Edit</button>
+                        <button class="btn btn-primary" id="showOnMapBtn">Show on Map</button>
+                        <button class="btn btn-secondary" id="deleteSiteBtn" style="background: rgba(244, 67, 54, 0.3);">Delete</button>
+                    </div>
+                `;
+                
+                el('siteDetailModal').classList.add('show');
+                
+                // Add event listeners to buttons
+                el('editSiteBtn').addEventListener('click', () => {
+                    editSite(site.id);
+                });
+                
+                el('showOnMapBtn').addEventListener('click', () => {
+                    map.setView([site.lat, site.lng], 15);
+                    
+                    // Find and open the marker popup
+                    const siteMarker = markers.find(marker => marker.siteId === site.id);
+                    if (siteMarker) {
+                        siteMarker.openPopup();
+                    }
+                    
+                    el('siteDetailModal').classList.remove('show');
+                    if (window.innerWidth <= 768) {
+                        // On mobile, close the sidebar when focusing on a site
+                        qs('.sidebar').classList.add('sidebar-collapsed');
+                        qs('.sidebar-toggle').classList.add('toggle-collapsed');
+                    }
+                });
+                
+                el('deleteSiteBtn').addEventListener('click', () => {
+                    if (confirm("Are you sure you want to delete this site? This action cannot be undone.")) {
+                        deleteSite(site.id);
+                    }
+                });
+            }).catch(error => {
+                console.error("Error loading site details:", error);
+            });
+        }
+    
+        // Edit site
+        function editSite(siteId) {
+            dbOps.getSiteById(siteId).then(site => {
+                currentSite = site;
+                
+                // Fill form with site data
+                el('siteName').value = site.name;
+                el('siteType').value = site.type;
+                el('siteLat').value = site.lat;
+                el('siteLng').value = site.lng;
+                el('siteSignificance').value = site.significance || '';
+                el('siteDuas').value = site.duas || '';
+                el('siteVisitNotes').value = site.visitNotes || '';
+                el('siteQuranHadith').value = site.quranHadith || '';
+                
+                if (site.visited) {
+                    el('visitedYes').checked = true;
+                } else {
+                    el('visitedNo').checked = true;
+                }
+                
+                // Close detail modal and open add/edit modal
+                el('siteDetailModal').classList.remove('show');
+                el('addSiteModal').classList.add('show');
+            }).catch(error => {
+                console.error("Error loading site for edit:", error);
+            });
+        }
+    
+        // Delete site
+        function deleteSite(siteId) {
+            dbOps.deleteSite(siteId).then(() => {
+                // Remove from trails
+                dbOps.getAllTrails().then(trails => {
+                    trails.forEach(trail => {
+                        if (trail.sites.includes(siteId)) {
+                            const updatedSites = trail.sites.filter(id => id !== siteId);
+                            trail.sites = updatedSites;
+                            dbOps.updateTrail(trail);
+                        }
+                    });
+                    
+                    // Close modal and reload
+                    el('siteDetailModal').classList.remove('show');
+                    loadSites();
+                    loadTrails();
+                    
+                    // Show success message
+                    showNotification("Site deleted successfully", "success");
+                });
+            }).catch(error => {
+                console.error("Error deleting site:", error);
+                showNotification("Error deleting site", "error");
+            });
+        }
+    
+        // Check if a site should be displayed based on active filters
+        function shouldShowSite(site) {
+            // Filter by type
+            if (activeFilters.type !== 'all' && site.type !== activeFilters.type) {
+                return false;
+            }
+            
+            // Filter by status
+            if (activeFilters.status === 'visited' && !site.visited) {
+                return false;
+            }
+            if (activeFilters.status === 'not-visited' && site.visited) {
+                return false;
+            }
+            
+            // Filter by search term
+            const searchTerm = el('searchInput').value.toLowerCase();
+            if (searchTerm && !site.name.toLowerCase().includes(searchTerm)) {
+                return false;
+            }
+            
+            // Filter by trail
+            if (currentTrail && !currentTrail.sites.includes(site.id)) {
+                return false;
+            }
+            
+            return true;
+        }
+    
+        // Load trails
+        function loadTrails() {
+            dbOps.getAllTrails().then(trails => {
+                trailsList = trails;
+                const trailSelect = el('trailSelect');
+                
+                // Save selected value before clearing
+                const selectedValue = trailSelect.value;
+                
+                // Clear options except the first one
+                while (trailSelect.options.length > 1) {
+                    trailSelect.remove(1);
+                }
+                
+                // Add trail options
+                trails.forEach(trail => {
+                    const option = document.createElement('option');
+                    option.value = trail.id;
+                    option.textContent = trail.name;
+                    trailSelect.appendChild(option);
+                });
+                
+                // Restore selected value if still exists
+                if (selectedValue) {
+                    trailSelect.value = selectedValue;
+                }
+            }).catch(error => {
+                console.error("Error loading trails:", error);
+            });
+        }
+    
+        // Display a trail on the map
+        function displayTrail(trailId) {
+            if (trailId) {
+                dbOps.getTrailById(parseInt(trailId)).then(trail => {
+                    currentTrail = trail;
+                    
+                    // Clear existing lines
+                    map.eachLayer(layer => {
+                        if (layer instanceof L.Polyline) {
+                            map.removeLayer(layer);
+                        }
+                    });
+                    
+                    // Filter markers to only show trail sites
+                    clearMarkers();
+                    
+                    // Load sites in the trail
+                    Promise.all(trail.sites.map(siteId => dbOps.getSiteById(siteId)))
+                        .then(sites => {
+                            // Add markers for sites in the trail
+                            sites.forEach(site => {
+                                if (site) {
+                                    const marker = createCustomMarker(site);
+                                    marker.addTo(map);
+                                }
+                            });
+                            
+                            // Create line connecting sites in order
+                            if (sites.length > 1) {
+                                const points = sites.map(site => [site.lat, site.lng]);
+                                const line = L.polyline(points, {
+                                    color: '#c89b3c',
+                                    weight: 3,
+                                    opacity: 0.7,
+                                    dashArray: '10, 10',
+                                    lineCap: 'round'
+                                }).addTo(map);
+                                
+                                // Fit map to show all markers
+                                map.fitBounds(line.getBounds(), { padding:  '22px'});
+                            } else if (sites.length === 1) {
+                                map.setView([sites.lat, sites.lng], 12);
+                            }
+                            
+                            renderSitesList();
+                        });
+                }).catch(error => {
+                    console.error("Error displaying trail:", error);
+                });
+            } else {
+                currentTrail = null;
+                
+                // Clear existing lines
+                map.eachLayer(layer => {
+                    if (layer instanceof L.Polyline) {
+                        map.removeLayer(layer);
+                    }
+                });
+                
+                loadSites();
+            }
+        }
+    
+        // Populate sites list for trail creation
+        function populateTrailSitesList() {
+            const trailSitesList = el('trailSitesList');
+            trailSitesList.innerHTML = '';
+            
+            if (sitesList.length === 0) {
+                trailSitesList.innerHTML = '<div style="color: var(--light); text-align: center;">No sites available. Add some sites first.</div>';
+                return;
+            }
+            
+            sitesList.forEach(site => {
+                const siteCheckbox = document.createElement('div');
+                siteCheckbox.style.marginBottom = '8px';
+                siteCheckbox.innerHTML = `
+                    <label style="display: flex; align-items: center;">
+                        <input type="checkbox" name="trailSite" value="${site.id}" style="margin-right: 8px;">
+                        ${site.name} (${getTypeLabel(site.type)})
+                    </label>
+                `;
+                trailSitesList.appendChild(siteCheckbox);
+            });
+        }
+    
+        // Get icon for site type
+        function getIconForType(type) {
+            switch (type) {
+                case 'masjid': return '⋆';
+                case 'tomb': return '✧';
+                case 'historical': return '◉';
+                case 'other': return '◊';
+                default: return '- ';
+            }
+        }
+    
+        // Get human-readable label for site type
+        function getTypeLabel(type) {
+            switch (type) {
+                case 'masjid': return 'Masjid';
+                case 'tomb': return 'Tomb of Scholar';
+                case 'historical': return 'Historical Site';
+                case 'other': return 'Other';
+                default: return type;
+            }
+        }
+    
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.left = '50%';
+            notification.style.transform = 'translateX(-50%)';
+            notification.style.padding = '10px 20px';
+            notification.style.borderRadius = '4px';
+            notification.style.zIndex = '10000';
+            notification.style.opacity = '0';
+            notification.style.transition = 'opacity 0.3s ease';
+            
+            switch (type) {
+                case 'success':
+                    notification.style.background = 'rgba(76, 175, 80, 0.9)';
+                    notification.style.color = 'white';
+                    break;
+                case 'error':
+                    notification.style.background = 'rgba(244, 67, 54, 0.9)';
+                    notification.style.color = 'white';
+                    break;
+                default:
+                    notification.style.background = 'rgba(33, 150, 243, 0.9)';
+                    notification.style.color = 'white';
+            }
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '1';
+            }, 10);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+    
+        // Convert file to base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+    
+        // Apply theme
+        function applyTheme(theme) {
+            const root = document.documentElement;
+            
+            switch (theme) {
+                case 'classic':
+                    root.style.setProperty('--primary', '#8b4513');
+                    root.style.setProperty('--accent', '#d2b48c');
+                    root.style.setProperty('--light', '#f5f0e6');
+                    root.style.setProperty('--dark', '#2e1c10');
+                    break;
+                case 'modern':
+                    root.style.setProperty('--primary', '#1a3e59');
+                    root.style.setProperty('--accent', '#c89b3c');
+                    root.style.setProperty('--light', '#f4efe4');
+                    root.style.setProperty('--dark', '#1a1a1a');
+                    break;
+                case 'spiritual':
+                    root.style.setProperty('--primary', '#4a2c40');
+                    root.style.setProperty('--accent', '#9c27b0');
+                    root.style.setProperty('--light', '#f0e6f2');
+                    root.style.setProperty('--dark', '#242038');
+                    break;
+                case 'desert':
+                    root.style.setProperty('--primary', '#c17e61');
+                    root.style.setProperty('--accent', '#e9b872');
+                    root.style.setProperty('--light', '#faf6eb');
+                    root.style.setProperty('--dark', '#3d2c20');
+                    break;
+            }
+        }
+    
+        // Check online status
+        function updateOnlineStatus() {
+            const offlineAlert = qs('.offline-alert');
+            if (navigator.onLine) {
+                offlineAlert.classList.remove('show');
+            } else {
+                offlineAlert.classList.add('show');
+            }
+        }
+    
+        // Event listeners
+        function setupEventListeners() {
+            // Sidebar toggle
+            qs('.sidebar-toggle').addEventListener('click', () => {
+                qs('.sidebar').classList.toggle('sidebar-collapsed');
+                qs('.sidebar-toggle').classList.toggle('toggle-collapsed');
+            });
+            
+            // Add site button
+            el('addSiteBtn').addEventListener('click', () => {
+                currentSite = null;
+                
+                // Reset form
+                el('addSiteForm').reset();
+                el('visitedNo').checked = true;
+                
+                // Show modal
+                el('addSiteModal').classList.add('show');
+            });
+            
+            // Map click for location
+            el('siteLat').addEventListener('click', () => {
+                mapClickMode = true;
+                map.getContainer().style.cursor = 'crosshair';
+                
+                // Close modal temporarily
+                el('addSiteModal').classList.remove('show');
+                
+                // Show instruction
+                showNotification("Click on the map to select location", "info");
+            });
+            
+            el('siteLng').addEventListener('click', () => {
+                mapClickMode = true;
+                map.getContainer().style.cursor = 'crosshair';
+                
+                // Close modal temporarily
+                el('addSiteModal').classList.remove('show');
+                
+                // Show instruction
+                showNotification("Click on the map to select location", "info");
+            });
+            
+            // Close modals
+            el('closeAddModal').addEventListener('click', () => {
+                el('addSiteModal').classList.remove('show');
+            });
+            
+            el('closeSiteDetailModal').addEventListener('click', () => {
+                el('siteDetailModal').classList.remove('show');
+            });
+            
+            el('cancelAddSite').addEventListener('click', () => {
+                el('addSiteModal').classList.remove('show');
+            });
+            
+            el('closeTrailModal').addEventListener('click', () => {
+                el('createTrailModal').classList.remove('show');
+            });
+            
+            el('cancelCreateTrail').addEventListener('click', () => {
+                el('createTrailModal').classList.remove('show');
+            });
+            
+            // Create trail button
+            el('createTrailBtn').addEventListener('click', () => {
+                el('createTrailForm').reset();
+                populateTrailSitesList();
+                el('createTrailModal').classList.add('show');
+            });
+            
+            // Filter buttons
+            qsa('.type-filters .filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    qsa('.type-filters .filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    activeFilters.type = btn.getAttribute('data-filter');
+                    loadSites();
+                });
+            });
+            
+            qsa('.status-filters .filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    qsa('.status-filters .filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    activeFilters.status = btn.getAttribute('data-filter');
+                    loadSites();
+                });
+            });
+            
+            // Search input
+            el('searchInput').addEventListener('input', () => {
+loadSites();
+});
+
+            // Trail select
+            el('trailSelect').addEventListener('change', (e) => {
+                displayTrail(e.target.value);
+            });
+            
+            // Add site form submission
+            el('addSiteForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                try {
+                    // Get form values
+                    const name = el('siteName').value;
+                    const type = el('siteType').value;
+                    const lat = parseFloat(el('siteLat').value);
+                    const lng = parseFloat(el('siteLng').value);
+                    const significance = el('siteSignificance').value;
+                    const duas = el('siteDuas').value;
+                    const visitNotes = el('siteVisitNotes').value;
+                    const quranHadith = el('siteQuranHadith').value;
+                    const visited = el('visitedYes').checked;
+                    
+                    // Handle photos
+                    let photos = [];
+                    if (currentSite && currentSite.photos) {
+                        photos = [...currentSite.photos];
+                    }
+                    
+                    const photoFiles = el('sitePhotos').files;
+                    if (photoFiles.length > 0) {
+                        for (let i = 0; i < photoFiles.length; i++) {
+                            const base64 = await fileToBase64(photoFiles[i]);
+                            photos.push(base64);
+                        }
+                    }
+                    
+                    // Create site object
+                    const site = {
+                        name,
+                        type,
+                        lat,
+                        lng,
+                        significance,
+                        duas,
+                        visitNotes,
+                        quranHadith,
+                        visited,
+                        photos,
+                        dateAdded: currentSite ? currentSite.dateAdded : new Date().toISOString(),
+                        dateUpdated: new Date().toISOString()
+                    };
+                    
+                    // Update or add site
+                    if (currentSite) {
+                        site.id = currentSite.id;
+                        await dbOps.updateSite(site);
+                        showNotification("Site updated successfully", "success");
+                    } else {
+                        await dbOps.addSite(site);
+                        showNotification("Site added successfully", "success");
+                    }
+                    
+                    // Close modal and refresh
+                    el('addSiteModal').classList.remove('show');
+                    loadSites();
+                } catch (error) {
+                    console.error("Error saving site:", error);
+                    showNotification("Error saving site", "error");
+                }
+            });
+            
+            // Create trail form submission
+            el('createTrailForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                try {
+                    const name = el('trailName').value;
+                    const description = el('trailDescription').value;
+                    
+                    // Get selected sites
+                    const selectedSites = [];
+                    qsa('input[name="trailSite"]:checked').forEach(checkbox => {
+                        selectedSites.push(parseInt(checkbox.value));
+                    });
+                    
+                    if (selectedSites.length < 2) {
+                        showNotification("Please select at least 2 sites for a trail", "error");
+                        return;
+                    }
+                    
+                    // Create trail object
+                    const trail = {
+                        name,
+                        description,
+                        sites: selectedSites,
+                        dateCreated: new Date().toISOString()
+                    };
+                    
+                    await dbOps.addTrail(trail);
+                    showNotification("Trail created successfully", "success");
+                    
+                    // Close modal and refresh
+                    el('createTrailModal').classList.remove('show');
+                    loadTrails();
+                } catch (error) {
+                    console.error("Error creating trail:", error);
+                    showNotification("Error creating trail", "error");
+                }
+            });
+            
+            // Theme selector
+            qsa('.theme-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    qsa('.theme-option').forEach(opt => opt.classList.remove('active'));
+                    option.classList.add('active');
+                    applyTheme(option.getAttribute('data-theme'));
+                });
+            });
+            
+            // Online/offline status
+            window.addEventListener('online', updateOnlineStatus);
+            window.addEventListener('offline', updateOnlineStatus);
+            
+            // Close modals on escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    document.querySelectorAll('.modal').forEach(modal => {
+                        modal.classList.remove('show');
+                    });
+                    
+                    if (mapClickMode) {
+                        mapClickMode = false;
+                        map.getContainer().style.cursor = '';
+                    }
+                }
+            });
+        }
+    
+        // Initialize app
+        async function initApp() {
+            try {
+                // Initialize IndexedDB
+                await initDB();
+                
+                // Initialize map
+                initMap();
+                
+                // Setup event listeners
+                setupEventListeners();
+                
+                // Load data
+                loadSites();
+                loadTrails();
+                
+                // Check online status
+                updateOnlineStatus();
+                
+                // Hide loading screen
+                setTimeout(() => {
+                    document.querySelector('.loading').style.opacity = '0';
+                    setTimeout(() => {
+                        document.querySelector('.loading').style.display = 'none';
+                    }, 500);
+                }, 1000);
+            } catch (error) {
+                console.error("Error initializing app:", error);
+                document.querySelector('.loading-text').textContent = "Error loading app. Please refresh the page.";
+                document.querySelector('.loading-spinner').style.borderTopColor = "#f44336";
+            }
+        }
+    
+        // Start the app when DOM is ready
+        document.addEventListener('DOMContentLoaded', initApp);
+
+
+
+        
+// Fix map style to be less dark
+function updateMapStyle() {
+// Remove the dark tile layer
+map.eachLayer(layer => {
+if (layer instanceof L.TileLayer) {
+map.removeLayer(layer);
+}
+});
+
+    // Add a lighter tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }).addTo(map);
+    }
+
+// Add location search control
+function addLocationSearch() {
+// Create a search control element
+const searchControl = L.Control.extend({
+options: {
+position: 'topright'
+},
+
+        onAdd: function() {
+            const container = L.DomUtil.create('div', 'location-search-container');
+            container.style.backgroundColor = 'white';
+            container.style.padding = '5px';
+            container.style.borderRadius = '4px';
+            container.style.boxShadow = '0 1px 5px rgba(0,0,0,0.4)';
+            container.style.width = '250px';
+            
+            const input = L.DomUtil.create('input', 'location-search-input', container);
+            input.type = 'text';
+            input.placeholder = 'Search for a place...';
+            input.style.width = '200px';
+            input.style.padding = '5px';
+            input.style.border = '1px solid #ccc';
+            input.style.borderRadius = '4px';
+            
+            const button = L.DomUtil.create('button', 'location-search-button', container);
+            button.innerHTML = '🔍';
+            button.style.marginLeft = '5px';
+            button.style.padding = '5px 10px';
+            button.style.border = '1px solid #ccc';
+            button.style.borderRadius = '4px';
+            button.style.cursor = 'pointer';
+            
+            // Prevent map click events when interacting with the search
+            L.DomEvent.disableClickPropagation(container);
+            
+            // Search functionality
+            L.DomEvent.on(button, 'click', function() {
+                searchLocation(input.value);
+            });
+            
+            L.DomEvent.on(input, 'keyup', function(e) {
+                if (e.keyCode === 13) {
+                    searchLocation(input.value);
+                }
+            });
+            
+            return container;
+        }
+    });
+    
+    // Add the search control to the map
+    map.addControl(new searchControl());
+    }
+
+// Search for a location using Nominatim
+function searchLocation(query) {
+if (!query) return;
+
+    // Show loading notification
+    showNotification("Searching for location...", "info");
+    
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.length > 0) {
+                const location = data;
+                const lat = parseFloat(location.lat);
+                const lon = parseFloat(location.lon);
+                
+                // Set view to the location
+                map.setView([lat, lon], 15);
+                
+                // Create a temporary marker
+                const tempMarker = L.marker([lat, lon]).addTo(map);
+                tempMarker.bindPopup(`<b>${location.display_name}</b><br>
+                    <button id="useLocationBtn" style="margin-top:5px;padding:3px 8px;">Use This Location</button>`)
+                    .openPopup();
+                
+                // Add click handler for the button
+                setTimeout(() => {
+                    const useLocationBtn = document.getElementById('useLocationBtn');
+                    if (useLocationBtn) {
+                        useLocationBtn.addEventListener('click', function() {
+                            if (el('addSiteModal').classList.contains('show')) {
+                                el('siteLat').value = lat.toFixed(6);
+                                el('siteLng').value = lon.toFixed(6);
+                            } else {
+                                // Open add site modal with coordinates
+                                currentSite = null;
+                                el('addSiteForm').reset();
+                                el('visitedNo').checked = true;
+                                el('siteLat').value = lat.toFixed(6);
+                                el('siteLng').value = lon.toFixed(6);
+                                el('addSiteModal').classList.add('show');
+                            }
+                            
+                            map.removeLayer(tempMarker);
+                        });
+                    }
+                }, 100);
+                
+                // Remove the marker after 30 seconds if not used
+                setTimeout(() => {
+                    if (map.hasLayer(tempMarker)) {
+                        map.removeLayer(tempMarker);
+                    }
+                }, 30000);
+                
+            } else {
+                showNotification("Location not found. Try a different search term.", "error");
+            }
+        })
+        .catch(error => {
+            console.error("Error searching location:", error);
+            showNotification("Error searching for location", "error");
+        });
+    }
+
+// Add "My Location" button
+function addMyLocationButton() {
+const locationControl = L.Control.extend({
+options: {
+position: 'bottomright'
+},
+
+        onAdd: function() {
+            const container = L.DomUtil.create('div', 'my-location-container');
+            container.style.backgroundColor = 'white';
+            container.style.width = '34px';
+            container.style.height = '34px';
+            container.style.borderRadius = '4px';
+            container.style.boxShadow = '0 1px 5px rgba(0,0,0,0.4)';
+            container.style.cursor = 'pointer';
+            container.style.display = 'flex';
+            container.style.justifyContent = 'center';
+            container.style.alignItems = 'center';
+            container.style.fontSize = '18px';
+            container.innerHTML = '📍';
+            container.title = 'My Location';
+            
+            L.DomEvent.on(container, 'click', function() {
+                getMyLocation();
+            });
+            
+            return container;
+        }
+    });
+    
+    map.addControl(new locationControl());
+    }
+
+// Get user's current location
+function getMyLocation() {
+if (!navigator.geolocation) {
+showNotification("Geolocation is not supported by your browser", "error");
+return;
+}
+
+    showNotification("Fetching your location...", "info");
+    
+    navigator.geolocation.getCurrentPosition(
+        // Success callback
+        position => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            // Center map on user's location
+            map.setView([lat, lng], 15);
+            
+            // Create a temporary marker with radius showing accuracy
+            const accuracyRadius = position.coords.accuracy;
+            
+            const locationMarker = L.marker([lat, lng]).addTo(map);
+            const accuracyCircle = L.circle([lat, lng], {
+                radius: accuracyRadius,
+                color: '#4285F4',
+                fillColor: '#4285F4',
+                fillOpacity: 0.2
+            }).addTo(map);
+            
+            locationMarker.bindPopup(`<b>Your Location</b><br>
+                Accuracy: ${Math.round(accuracyRadius)} meters<br>
+                <button id="useMyLocationBtn" style="margin-top:5px;padding:3px 8px;">Use This Location</button>`)
+                .openPopup();
+            
+            // Add click handler for the button
+            setTimeout(() => {
+                const useMyLocationBtn = document.getElementById('useMyLocationBtn');
+                if (useMyLocationBtn) {
+                    useMyLocationBtn.addEventListener('click', function() {
+                        if (el('addSiteModal').classList.contains('show')) {
+                            el('siteLat').value = lat.toFixed(6);
+                            el('siteLng').value = lng.toFixed(6);
+                        } else {
+                            // Open add site modal with coordinates
+                            currentSite = null;
+                            el('addSiteForm').reset();
+                            el('visitedNo').checked = true;
+                            el('siteLat').value = lat.toFixed(6);
+                            el('siteLng').value = lng.toFixed(6);
+                            el('addSiteModal').classList.add('show');
+                        }
+                        
+                        map.removeLayer(locationMarker);
+                        map.removeLayer(accuracyCircle);
+                    });
+                }
+            }, 100);
+            
+            // Remove marker and circle after 30 seconds
+            setTimeout(() => {
+                if (map.hasLayer(locationMarker)) {
+                    map.removeLayer(locationMarker);
+                    map.removeLayer(accuracyCircle);
+                }
+            }, 30000);
+        },
+        // Error callback
+        error => {
+            let message;
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    message = "Location access denied. Please enable location services.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = "Location information unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    message = "Location request timed out.";
+                    break;
+                default:
+                    message = "An unknown error occurred.";
+            }
+            showNotification(message, "error");
+        },
+        // Options
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+    }
+
+// Fix coordinates selection on map click
+function fixCoordinatesSelection() {
+// Remove existing click handler
+map.off('click');
+
+    // Add new click handler
+    map.on('click', function(e) {
+        if (mapClickMode) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            
+            // Set coordinates in the form
+            el('siteLat').value = lat.toFixed(6);
+            el('siteLng').value = lng.toFixed(6);
+            
+            // Re-open the modal
+            el('addSiteModal').classList.add('show');
+            
+            // Reset click mode
+            mapClickMode = false;
+            map.getContainer().style.cursor = '';
+            
+            // Show notification
+            showNotification("Location selected", "success");
+        }
+    });
+    }
+
+// Call these functions at the end of your initApp function
+function enhanceMapFeatures() {
+updateMapStyle();
+addLocationSearch();
+addMyLocationButton();
+fixCoordinatesSelection();
+}
+
+// Add this to the end of your initApp function
+document.addEventListener('DOMContentLoaded', function() {
+// Wait for the original initApp to complete
+const originalInitAppComplete = setInterval(() => {
+if (typeof map !== 'undefined' && map !== null) {
+clearInterval(originalInitAppComplete);
+// Apply our enhancements
+setTimeout(enhanceMapFeatures, 1000);
+}
+}, 500);
+});
+
+
+    </script>
+    </body>
+</html>
