@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Islamic Sites Atlas (MyData)</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Author: Yasin Ullah, Pakistani -->
+    <meta name="author" content="Yasin Ullah, Pakistani">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+       crossorigin=""/>
+
+    <!-- Custom CSS -->
+    <style>
+        /* General body and map container styling for ancient map look */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern readable font */
+            background-color: #f4e7d8; /* Parchment color */
+            color: #333;
+            overflow: hidden; /* Prevent scrollbars */
+        }
+        #map-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 10px solid #a08a6d; /* Frame */
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            margin: 20px;
+            overflow: hidden;
+        }
+        #map {
+             height: 100%;
+             width: 100%;
+             /* Optional: Apply filters for ancient look */
+             filter: sepia(0.2) contrast(1.05);
+        }
+
+        /* Glowing marker style */
+        .glowing-marker-icon {
+             background: none !important;
+             border-radius: 50%;
+             width: 20px !important;
+             height: 20px !important;
+             margin-left: -10px !important; /* Center icon */
+             margin-top: -10px !important;
+             display: flex;
+             justify-content: center;
+             align-items: center;
+        }
+        .glowing-marker-icon div {
+             width: 100%;
+             height: 100%;
+             border-radius: 50%;
+             animation: pulse 1.5s infinite ease-in-out;
+             box-shadow: 0 0 5px, 0 0 10px; /* Shadow color inherited from background */
+        }
+        /* Specific colors for visited/not visited */
+        .glowing-marker-icon.visited div { background-color: #00ccff; box-shadow: 0 0 5px #00ccff, 0 0 10px #00ccff; } /* Blue glow for visited */
+        .glowing-marker-icon.not-visited div { background-color: #ffcc00; box-shadow: 0 0 5px #ffcc00, 0 0 10px #ffcc00; } /* Orange glow for not visited */
+
+        @keyframes pulse {
+            0% { transform: scale(0.8); opacity: 0.7; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0.7; }
+        }
+
+         /* Leaflet Popup Styling */
+         .leaflet-popup-content-wrapper {
+             border-radius: 8px;
+             padding: 15px;
+             box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+         }
+         .leaflet-popup-content p {
+             margin: 5px 0;
+             font-size: 0.9em;
+             line-height: 1.4;
+         }
+         .leaflet-popup-content strong {
+             color: #0056b3;
+         }
+          .leaflet-popup-content button {
+              display: block;
+              width: 100%;
+              padding: 8px;
+              margin-top: 10px;
+              background-color: #007bff;
+              color: white;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+              font-size: 1em;
+          }
+           .leaflet-popup-content button:hover {
+               background-color: #0056b3;
+           }
+
+
+        /* Modals/Forms */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+            padding: 20px; /* Add padding for small screens */
+            box-sizing: border-box;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 100%; /* Default to full width on small screens */
+            max-width: 600px; /* Max width on larger screens */
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+            box-sizing: border-box;
+            height: 100%; /* Full height */
+            overflow-y: scroll;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .modal-content h2 {
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .modal-content label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .modal-content input[type="text"],
+        .modal-content input[type="number"],
+        .modal-content select,
+        .modal-content textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box; /* Include padding and border in element's total width */
+        }
+         .modal-content input[type="checkbox"] {
+             margin-right: 5px;
+         }
+         .modal-content label[for^="filter-"] {
+             display: inline-block;
+             margin-right: 15px;
+             font-weight: normal;
+             margin-top: 5px;
+         }
+         .modal-content div label[for^="filter-"] {
+             margin-bottom: 5px;
+         }
+
+        .modal-content button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+         .modal-content button:hover {
+             background-color: #45a049;
+         }
+        .modal-content button.cancel {
+             background-color: #f44336;
+        }
+         .modal-content button.cancel:hover {
+             background-color: #da190b;
+         }
+         .modal-content button.close-button-modal {
+              background-color: #6c757d;
+         }
+          .modal-content button.close-button-modal:hover {
+              background-color: #5a6268;
+          }
+
+        #photo-previews img {
+            max-width: 80px;
+            max-height: 80px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            object-fit: cover; /* Ensure image covers the area without distortion */
+        }
+
+        #trail-sites-list, #trails-list {
+            list-style: none;
+            padding: 0;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        #trail-sites-list li, #trails-list li {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+         #trail-sites-list li:last-child, #trails-list li:last-child {
+             border-bottom: none;
+         }
+         #trail-sites-list li:hover, #trails-list li:hover {
+             background-color: #f0f0f0;
+         }
+
+
+        /* Control Panel/Sidebar */
+        #control-panel {
+            position: absolute;
+            top: 30px; /* Adjust for frame */
+            right: 30px; /* Adjust for frame */
+            z-index: 999;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-height: calc(100vh - 60px); /* Limit height */
+            overflow-y: auto; /* Add scroll if needed */
+        }
+        #control-panel button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            font-size: 1em;
+        }
+         #control-panel button:hover {
+             background-color: #0056b3;
+         }
+         #control-panel input[type="text"] {
+             width: calc(100% - 22px); /* Adjust for padding/border */
+             padding: 10px;
+             margin-bottom: 10px;
+             border: 1px solid #ccc;
+             border-radius: 4px;
+             box-sizing: border-box;
+         }
+
+        /* Search Results */
+        #search-results {
+            margin-top: 5px;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 4px;
+             background-color: white; /* Ensure results are readable */
+        }
+        #search-results div {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        #search-results div:last-child {
+             border-bottom: none;
+        }
+        #search-results div:hover {
+            background-color: #f0f0f0;
+        }
+
+        /* Trail creation mode indicator */
+        #trail-mode-indicator {
+            position: absolute;
+            top: 30px; /* Adjust for frame */
+            left: 30px; /* Adjust for frame */
+            z-index: 999;
+            background-color: rgba(255, 255, 0, 0.9);
+            padding: 10px;
+            border-radius: 4px;
+            display: none; /* Hidden by default */
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            #map-container {
+                 margin: 10px;
+                 border-width: 5px;
+            }
+            #control-panel {
+                right: 10px;
+                top: 10px;
+                padding: 10px;
+                max-height: calc(100vh - 20px);
+            }
+            #control-panel button {
+                padding: 8px;
+                margin-bottom: 8px;
+            }
+             .modal-content {
+                 padding: 15px;
+             }
+             .close-button {
+                 top: 5px;
+                 right: 10px;
+                 font-size: 24px;
+             }
+             .modal-content h2 {
+                 padding-bottom: 5px;
+             }
+             .modal-content label {
+                 margin-top: 8px;
+                 margin-bottom: 3px;
+             }
+             .modal-content input[type="text"],
+             .modal-content input[type="number"],
+             .modal-content select,
+             .modal-content textarea {
+                 padding: 8px;
+                 margin-bottom: 10px;
+             }
+             .modal-content button {
+                 padding: 8px 15px;
+                 margin-right: 5px;
+                 margin-top: 8px;
+             }
+             #trail-mode-indicator {
+                 top: 10px;
+                 left: 10px;
+                 padding: 8px;
+                 font-size: 0.9em;
+             }
+        }
+
+    </style>
+</head>
+<body>
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+
+    <!-- Control Panel -->
+    <div id="control-panel">
+        <button id="add-site-btn">Add New Site</button>
+        <button id="filter-btn">Filter Sites</button>
+        <button id="start-trail-btn">Create Trail</button>
+        <button id="view-trails-btn">View Trails</button>
+        <input type="text" id="search-input" placeholder="Search sites...">
+        <div id="search-results"></div>
+        <button id="backup-btn">Backup Data</button>
+        <button id="restore-btn">Restore Data</button>
+        <input type="file" id="restore-file-input" style="display: none;">
+    </div>
+
+    <!-- Trail Mode Indicator -->
+    <div id="trail-mode-indicator">Trail Creation Mode: Select sites on the map.</div>
+
+
+    <!-- Modals -->
+
+    <!-- Add/Edit Site Modal -->
+    <div id="site-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h2 id="site-modal-title">Add New Site</h2>
+            <input type="hidden" id="site-id">
+            <input type="hidden" id="site-lat">
+            <input type="hidden" id="site-lng">
+
+            <label for="site-name">Name:</label>
+            <input type="text" id="site-name" required>
+
+            <label for="site-type">Type:</label>
+            <select id="site-type">
+                <option value="Masjid">Masjid</option>
+                <option value="Historical Location">Historical Location</option>
+                <option value="Tomb of Scholar/Wali">Tomb of Scholar/Wali</option>
+                <option value="Natural Site">Natural Site</option>
+                <option value="Other">Other</option>
+            </select>
+
+            <label for="site-significance">Historical Significance (Notes):</label>
+            <textarea id="site-significance" rows="4"></textarea>
+
+            <label for="site-duas">Related Duas/Practices (Notes):</label>
+            <textarea id="site-duas" rows="4"></textarea>
+
+            <label for="site-visit-notes">Personal Visit Notes:</label>
+            <textarea id="site-visit-notes" rows="4"></textarea>
+
+            <label for="site-photos">Photos:</label>
+            <input type="file" id="site-photos" accept="image/*" multiple>
+            <div id="photo-previews" style="margin-top: 10px;"></div>
+
+            <label for="site-quran-hadith">Related Quran/Hadith Snippets:</label>
+            <textarea id="site-quran-hadith" rows="3"></textarea>
+
+            <label for="site-visited">Visited:</label>
+            <input type="checkbox" id="site-visited">
+
+            <button id="save-site-btn">Save Site</button>
+            <button id="delete-site-btn" class="cancel" style="display: none;">Delete Site</button>
+             <button class="close-button-modal">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Filter Modal -->
+    <div id="filter-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h2>Filter Sites</h2>
+            <label>Filter by Type:</label>
+            <div>
+                <input type="checkbox" id="filter-type-Masjid" value="Masjid" checked> <label for="filter-type-Masjid">Masjid</label><br>
+                <input type="checkbox" id="filter-type-Historical Location" value="Historical Location" checked> <label for="filter-type-Historical Location">Historical Location</label><br>
+                <input type="checkbox" id="filter-type-Tomb of Scholar/Wali" value="Tomb of Scholar/Wali" checked> <label for="filter-type-Tomb of Scholar/Wali">Tomb of Scholar/Wali</label><br>
+                <input type="checkbox" id="filter-type-Natural Site" value="Natural Site" checked> <label for="filter-type-Natural Site">Natural Site</label><br>
+                <input type="checkbox" id="filter-type-Other" value="Other" checked> <label for="filter-type-Other">Other</label><br>
+            </div>
+
+             <label style="margin-top: 15px;">Filter by Visited Status:</label>
+            <div>
+                <input type="checkbox" id="filter-visited-yes" value="yes" checked> <label for="filter-visited-yes">Visited</label><br>
+                <input type="checkbox" id="filter-visited-no" value="no" checked> <label for="filter-visited-no">Not Visited</label><br>
+            </div>
+
+            <button id="apply-filter-btn">Apply Filter</button>
+            <button class="close-button-modal">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Trail Creation/Details Modal -->
+     <div id="trail-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h2 id="trail-modal-title">Create New Trail</h2>
+             <input type="hidden" id="trail-id">
+
+            <label for="trail-name">Trail Name:</label>
+            <input type="text" id="trail-name" required>
+
+            <label>Selected Sites (Click markers on map):</label>
+            <ul id="trail-sites-list">
+                <!-- Sites added dynamically -->
+            </ul>
+
+            <button id="save-trail-btn">Save Trail</button>
+             <button id="end-trail-btn" style="display: none;">End Trail Mode</button>
+             <button id="delete-trail-btn" class="cancel" style="display: none;">Delete Trail</button>
+            <button class="close-button-modal">Cancel</button>
+        </div>
+    </div>
+
+     <!-- View Trails Modal -->
+     <div id="view-trails-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h2>Your Trails</h2>
+            <ul id="trails-list">
+                <!-- Trails loaded dynamically -->
+            </ul>
+             <button class="close-button-modal">Close</button>
+        </div>
+    </div>
+
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script>
+        // Author: Yasin Ullah, Pakistani
+
+        // --- UUID Generator ---
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // --- IndexedDB Setup (UUID Version) ---
+        const dbName = 'islamicSitesDB';
+        const dbVersion = 2; // Increment version for schema change (UUIDs)
+        let db;
+
+        const openDB = () => {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(dbName, dbVersion);
+
+                request.onupgradeneeded = (event) => {
+                    db = event.target.result;
+                    console.log(`IndexedDB upgrade needed. Old version: ${event.oldVersion}, New version: ${event.newVersion}`);
+
+                    // If upgrading from version 1 (auto-increment)
+                    if (event.oldVersion < 2) {
+                         // For simplicity in this single-file example, delete old stores.
+                         // A real app would migrate data.
+                         if (db.objectStoreNames.contains('sites')) {
+                             db.deleteObjectStore('sites');
+                             console.log('Deleted old sites store (v1)');
+                         }
+                         if (db.objectStoreNames.contains('trails')) {
+                             db.deleteObjectStore('trails');
+                              console.log('Deleted old trails store (v1)');
+                         }
+                    }
+
+                    // Create new stores with UUID keyPath if they don't exist (handles initial creation and upgrade from < v2)
+                    if (!db.objectStoreNames.contains('sites')) {
+                        const sitesStore = db.createObjectStore('sites', { keyPath: 'id' }); // No autoIncrement
+                        sitesStore.createIndex('type', 'type', { unique: false });
+                        sitesStore.createIndex('visited', 'visited', { unique: false });
+                        sitesStore.createIndex('name', 'name', { unique: false }); // For search
+                        sitesStore.createIndex('significance', 'significance', { unique: false }); // For search
+                        sitesStore.createIndex('duas', 'duas', { unique: false }); // For search
+                        sitesStore.createIndex('visitNotes', 'visitNotes', { unique: false }); // For search
+                        sitesStore.createIndex('quranHadith', 'quranHadith', { unique: false }); // For search
+                        console.log('Created sites store (v2)');
+                    }
+                    if (!db.objectStoreNames.contains('trails')) {
+                         const trailsStore = db.createObjectStore('trails', { keyPath: 'id' }); // No autoIncrement
+                         trailsStore.createIndex('name', 'name', { unique: false }); // For search
+                         console.log('Created trails store (v2)');
+                    }
+                };
+
+                request.onsuccess = (event) => {
+                    db = event.target.result;
+                    console.log('IndexedDB opened successfully (v' + db.version + ')');
+                    resolve(db);
+                };
+
+                request.onerror = (event) => {
+                    console.error('IndexedDB error:', event.target.errorCode);
+                    reject(event.target.error);
+                };
+            });
+        };
+
+        const addData = (storeName, data) => {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                // Generate UUID before adding if not present
+                if (!data.id) {
+                    data.id = generateUUID();
+                }
+                const request = store.add(data);
+
+                request.onsuccess = (event) => {
+                    resolve(data.id); // Resolve with the generated/provided ID
+                };
+
+                request.onerror = (event) => {
+                    console.error(`Error adding data to ${storeName}:`, event.target.error);
+                    reject(event.target.error);
+                };
+            });
+        };
+
+        const updateData = (storeName, data) => {
+             return new Promise((resolve, reject) => {
+                if (!data.id) {
+                    reject(new Error('Cannot update data without an ID.'));
+                    return;
+                }
+                const transaction = db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.put(data); // Use put for update
+
+                request.onsuccess = () => {
+                    resolve();
+                };
+
+                request.onerror = (event) => {
+                    console.error(`Error updating data in ${storeName}:`, event.target.error);
+                    reject(event.target.error);
+                };
+            });
+        };
+
+         const deleteData = (storeName, id) => {
+             return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.delete(id); // ID is the UUID string
+
+                request.onsuccess = () => {
+                    resolve();
+                };
+
+                request.onerror = (event) => {
+                    console.error(`Error deleting data from ${storeName}:`, event.target.error);
+                    reject(event.target.error);
+                };
+            });
+        };
+
+        const getAllData = (storeName) => {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.getAll();
+
+                request.onsuccess = (event) => {
+                    resolve(event.target.result);
+                };
+
+                request.onerror = (event) => {
+                    console.error(`Error getting all data from ${storeName}:`, event.target.error);
+                    reject(event.target.error);
+                };
+            });
+        };
+
+         const getDataById = (storeName, id) => {
+             return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.get(id); // ID is the UUID string
+
+                request.onsuccess = (event) => {
+                    resolve(event.target.result);
+                };
+
+                request.onerror = (event) => {
+                    console.error(`Error getting data by ID from ${storeName}:`, event.target.error);
+                    reject(event.target.error);
+                };
+            });
+        };
+
+         const clearStore = (storeName) => {
+             return new Promise((resolve, reject) => {
+                 const transaction = db.transaction([storeName], 'readwrite');
+                 const store = transaction.objectStore(storeName);
+                 const request = store.clear();
+
+                 request.onsuccess = () => {
+                     resolve();
+                 };
+                 request.onerror = (event) => {
+                     console.error(`Error clearing store ${storeName}:`, event.target.error);
+                     reject(event.target.error);
+                 };
+             });
+         };
+
+
+        // --- Map Initialization ---
+        let map;
+        const markersLayer = new L.LayerGroup(); // Layer for all site markers
+        const trailsLayer = new L.LayerGroup(); // Layer for all trails (polylines)
+        const siteMarkers = {}; // Store Leaflet marker objects by site ID (UUID string)
+        const trailPolylines = {}; // Store Leaflet polyline objects by trail ID (UUID string)
+
+        const initMap = () => {
+            // Default view: Mecca, Saudi Arabia
+            map = L.map('map').setView([21.4225, 39.8262], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19,
+            }).addTo(map);
+
+            markersLayer.addTo(map);
+            trailsLayer.addTo(map);
+
+            // Handle map clicks to add new sites when in the correct mode
+            map.on('click', onMapClick);
+
+            // Load existing sites and trails from DB
+            loadSites();
+            loadTrails();
+        };
+
+        // --- Custom Marker Icon ---
+        const createGlowingIcon = (isVisited) => {
+             const colorClass = isVisited ? 'visited' : 'not-visited';
+             return L.divIcon({
+                 className: `glowing-marker-icon ${colorClass}`,
+                 html: `<div></div>`, // The glow effect is on the inner div
+                 iconSize: [20, 20],
+                 popupAnchor: [0, -10] // Adjust popup position
+             });
+        };
+
+
+        // --- Site Management ---
+        let waitingForMapClick = false; // Flag to indicate we are waiting for a map click to add a site
+
+        const onMapClick = (e) => {
+            if (waitingForMapClick) {
+                waitingForMapClick = false; // Reset flag
+                // Show the add site modal with clicked coordinates
+                resetSiteModal();
+                document.getElementById('site-modal-title').textContent = 'Add New Site';
+                document.getElementById('site-id').value = ''; // Clear ID for new site
+                document.getElementById('delete-site-btn').style.display = 'none';
+                document.getElementById('site-lat').value = e.latlng.lat;
+                document.getElementById('site-lng').value = e.latlng.lng;
+                showModal('site-modal');
+            } else if (isTrailCreationMode) {
+                // If in trail creation mode, clicking empty space does nothing.
+                console.log('Clicked map in trail mode, but not on a marker.');
+                return;
+            } else {
+                // Normal map click behavior (do nothing or show coordinates etc.)
+                console.log('Map clicked:', e.latlng);
+            }
+        };
+
+        const showSiteDetails = async (siteId) => {
+             const site = await getDataById('sites', siteId); // siteId is string UUID
+             if (!site) {
+                  alert('Site not found.');
+                  loadSites(); // Refresh markers just in case
+                  return;
+             }
+
+             resetSiteModal();
+             document.getElementById('site-modal-title').textContent = 'Site Details';
+             document.getElementById('site-id').value = site.id; // site.id is string UUID
+             document.getElementById('site-lat').value = site.lat;
+             document.getElementById('site-lng').value = site.lng;
+             document.getElementById('site-name').value = site.name;
+             document.getElementById('site-type').value = site.type;
+             document.getElementById('site-significance').value = site.significance || '';
+             document.getElementById('site-duas').value = site.duas || '';
+             document.getElementById('site-visit-notes').value = site.visitNotes || '';
+             document.getElementById('site-quran-hadith').value = site.quranHadith || '';
+             document.getElementById('site-visited').checked = site.visited || false;
+
+             // Display photos
+             const photoPreviewsDiv = document.getElementById('photo-previews');
+             photoPreviewsDiv.innerHTML = '';
+             if (site.photos && site.photos.length > 0) {
+                 site.photos.forEach(photoDataUrl => {
+                     const img = document.createElement('img');
+                     img.src = photoDataUrl;
+                     img.style.maxWidth = '80px';
+                     img.style.maxHeight = '80px';
+                     img.style.marginRight = '5px';
+                     img.style.marginBottom = '5px';
+                     photoPreviewsDiv.appendChild(img);
+                 });
+             }
+
+             document.getElementById('save-site-btn').textContent = 'Save Changes';
+             document.getElementById('delete-site-btn').style.display = 'inline-block';
+             showModal('site-modal');
+        };
+
+        const saveSite = async () => {
+            const siteId = document.getElementById('site-id').value; // Will be UUID string or empty
+            const lat = parseFloat(document.getElementById('site-lat').value);
+            const lng = parseFloat(document.getElementById('site-lng').value);
+            const name = document.getElementById('site-name').value.trim();
+            const type = document.getElementById('site-type').value;
+            const significance = document.getElementById('site-significance').value.trim();
+            const duas = document.getElementById('site-duas').value.trim();
+            const visitNotes = document.getElementById('site-visit-notes').value.trim();
+            const quranHadith = document.getElementById('site-quran-hadith').value.trim();
+            const visited = document.getElementById('site-visited').checked;
+            const photoInput = document.getElementById('site-photos');
+
+            if (!name || isNaN(lat) || isNaN(lng)) {
+                alert('Site Name and location are required.');
+                return;
+            }
+
+             let photosDataUrls = [];
+             // If editing, get existing photos first
+             if (siteId) {
+                 const existingSite = await getDataById('sites', siteId); // siteId is string UUID
+                 if (existingSite && existingSite.photos) {
+                     photosDataUrls = existingSite.photos;
+                 }
+             }
+
+            // Process new photos
+            const files = photoInput.files;
+            let filesProcessed = 0;
+            const totalFilesToProcess = files.length;
+
+            const processFile = (file) => {
+                 if (file.type.startsWith('image/')) {
+                     const reader = new FileReader();
+                     reader.onload = (e) => {
+                         photosDataUrls.push(e.target.result);
+                         filesProcessed++;
+                         checkIfAllFilesProcessed();
+                     };
+                     reader.onerror = (e) => {
+                         console.error('Error reading file:', e);
+                         filesProcessed++;
+                         checkIfAllFilesProcessed(); // Continue even if a file fails
+                     };
+                     reader.readAsDataURL(file);
+                 } else {
+                      filesProcessed++;
+                      checkIfAllFilesProcessed();
+                 }
+            };
+
+            const checkIfAllFilesProcessed = () => {
+                 if (filesProcessed === totalFilesToProcess) {
+                      saveSiteData(siteId, lat, lng, name, type, significance, duas, visitNotes, quranHadith, visited, photosDataUrls);
+                 }
+            };
+
+            if (totalFilesToProcess > 0) {
+                 for (let i = 0; i < files.length; i++) {
+                     processFile(files[i]);
+                 }
+            } else {
+                 // No new photos, just save the site data
+                 saveSiteData(siteId, lat, lng, name, type, significance, duas, visitNotes, quranHadith, visited, photosDataUrls);
+            }
+        };
+
+        const saveSiteData = async (siteId, lat, lng, name, type, significance, duas, visitNotes, quranHadith, visited, photosDataUrls) => {
+             const siteData = {
+                // id will be added/used below
+                lat: lat,
+                lng: lng,
+                name: name,
+                type: type,
+                significance: significance,
+                duas: duas,
+                visitNotes: visitNotes,
+                quranHadith: quranHadith,
+                visited: visited,
+                photos: photosDataUrls // Array of data URLs
+            };
+
+            try {
+                let id;
+                if (siteId) {
+                    siteData.id = siteId; // Use existing UUID string
+                    await updateData('sites', siteData);
+                    id = siteData.id;
+                    console.log('Site updated:', siteData);
+                } else {
+                    // Generate UUID for new site
+                    siteData.id = generateUUID();
+                    id = await addData('sites', siteData); // addData now returns the ID
+                    console.log('Site added:', siteData);
+                }
+                hideModal('site-modal');
+                displaySiteMarker(siteData); // Add or update marker on map
+
+                 // If in trail creation mode, add this site to the current trail being built
+                 if (isTrailCreationMode) {
+                     // If it's a new site and the first one in the trail, or if editing a site already in the trail
+                     const existsInCurrentTrail = currentTrailSites.some(s => s.id === siteData.id);
+                     if (!siteId && currentTrailSites.length === 0) {
+                          // Added a brand new site, and it's the first site for a new trail
+                          addSiteToCurrentTrail(siteData);
+                     } else if (siteId && existsInCurrentTrail) {
+                         // Edited an existing site that is already in the current trail being built
+                         const index = currentTrailSites.findIndex(s => s.id === siteId);
+                         currentTrailSites[index] = { id: siteData.id, name: siteData.name, lat: siteData.lat, lng: siteData.lng };
+                         updateTrailSiteList(); // Update the list display
+                         redrawCurrentTrailPolyline(); // Redraw the polyline
+                     }
+                 }
+
+
+            } catch (error) {
+                console.error('Failed to save site:', error);
+                alert('Failed to save site.');
+            }
+        };
+
+
+        const deleteSite = async () => {
+            const siteId = document.getElementById('site-id').value; // siteId is UUID string
+            if (!siteId) return;
+
+            if (confirm('Are you sure you want to delete this site? This will also remove it from any trails.')) {
+                try {
+                    await deleteData('sites', siteId); // siteId is UUID string
+                    console.log('Site deleted:', siteId);
+                    // Remove marker from map
+                    if (siteMarkers[siteId]) {
+                        markersLayer.removeLayer(siteMarkers[siteId]);
+                        delete siteMarkers[siteId];
+                    }
+                     // Also remove site from any trails that contain it
+                     await removeSiteFromTrails(siteId); // siteId is UUID string
+                     loadTrails(); // Reload trails to update polylines
+
+                    hideModal('site-modal');
+                } catch (error) {
+                    console.error('Failed to delete site:', error);
+                    alert('Failed to delete site.');
+                }
+            }
+        };
+
+        const resetSiteModal = () => {
+            document.getElementById('site-id').value = '';
+            document.getElementById('site-lat').value = '';
+            document.getElementById('site-lng').value = '';
+            document.getElementById('site-name').value = '';
+            document.getElementById('site-type').value = 'Masjid';
+            document.getElementById('site-significance').value = '';
+            document.getElementById('site-duas').value = '';
+            document.getElementById('site-visit-notes').value = '';
+            document.getElementById('site-quran-hadith').value = '';
+            document.getElementById('site-visited').checked = false;
+            document.getElementById('site-photos').value = ''; // Clear file input
+            document.getElementById('photo-previews').innerHTML = '';
+            document.getElementById('save-site-btn').textContent = 'Save Site';
+            document.getElementById('delete-site-btn').style.display = 'none';
+        };
+
+        const loadSites = async () => {
+            try {
+                const sites = await getAllData('sites');
+                // Clear existing markers first
+                markersLayer.clearLayers();
+                for (const id in siteMarkers) {
+                     delete siteMarkers[id];
+                }
+
+                sites.forEach(site => {
+                    displaySiteMarker(site);
+                });
+                console.log('Sites loaded:', sites.length);
+                 applyCurrentFilter(); // Apply filter after loading
+            } catch (error) {
+                console.error('Failed to load sites:', error);
+            }
+        };
+
+         const displaySiteMarker = (site) => {
+             // Remove existing marker if it exists (for updates)
+             if (siteMarkers[site.id]) { // site.id is UUID string
+                 markersLayer.removeLayer(siteMarkers[site.id]);
+                 delete siteMarkers[site.id];
+             }
+
+             const marker = L.marker([site.lat, site.lng], {
+                 icon: createGlowingIcon(site.visited)
+             });
+
+             // Create popup content
+             let popupContent = `<strong>${site.name || 'Unnamed Site'}</strong><br>`;
+             popupContent += `Type: ${site.type}<br>`;
+             if (site.visited) popupContent += `<em>Visited</em><br>`;
+             // Add snippets, limit length
+             if (site.significance) popupContent += `<p><strong>Significance:</strong> ${site.significance.substring(0, 100)}${site.significance.length > 100 ? '...' : ''}</p>`;
+             if (site.duas) popupContent += `<p><strong>Duas:</strong> ${site.duas.substring(0, 100)}${site.duas.length > 100 ? '...' : ''}</p>`;
+             if (site.visitNotes) popupContent += `<p><strong>Visit Notes:</strong> ${site.visitNotes.substring(0, 100)}${site.visitNotes.length > 100 ? '...' : ''}</p>`;
+             if (site.quranHadith) popupContent += `<p><strong>Quran/Hadith:</strong> ${site.quranHadith.substring(0, 100)}${site.quranHadith.length > 100 ? '...' : ''}</p>`;
+
+
+             popupContent += `<button onclick="showSiteDetails('${site.id}')">View/Edit Details</button>`; // Pass string ID
+
+             marker.bindPopup(popupContent);
+
+             // Store marker using UUID string key
+             siteMarkers[site.id] = marker;
+             markersLayer.addLayer(marker);
+
+             // Add click handler for trail creation mode
+             marker.on('click', (e) => {
+                 if (isTrailCreationMode) {
+                     // Prevent default popup opening in trail mode
+                     if (marker.getPopup()) {
+                         marker.closePopup();
+                     }
+                     addSiteToCurrentTrail(site); // site object contains UUID
+                 }
+             });
+         };
+
+         const removeSiteFromTrails = async (siteIdToRemove) => { // siteIdToRemove is UUID string
+             const trails = await getAllData('trails');
+             for (const trail of trails) {
+                 const updatedSiteIds = trail.siteIds.filter(id => id !== siteIdToRemove); // Compare UUID strings
+                 if (updatedSiteIds.length !== trail.siteIds.length) {
+                     // Site was found in this trail, update the trail
+                     trail.siteIds = updatedSiteIds;
+                     if (trail.siteIds.length < 2) {
+                         // If trail has less than 2 sites, delete the trail
+                         await deleteData('trails', trail.id); // trail.id is UUID string
+                     } else {
+                          await updateData('trails', trail); // trail.id is UUID string
+                     }
+                 }
+             }
+         };
+
+
+        // --- Filtering ---
+        const filterSites = () => {
+            const selectedTypes = Array.from(document.querySelectorAll('#filter-modal input[type="checkbox"][id^="filter-type-"]:checked')).map(cb => cb.value);
+            const filterVisitedYes = document.getElementById('filter-visited-yes').checked;
+            const filterVisitedNo = document.getElementById('filter-visited-no').checked;
+
+            // Iterate through all markers in the layer
+            markersLayer.eachLayer(marker => {
+                // Find the site ID (UUID string) associated with this marker
+                const siteId = Object.keys(siteMarkers).find(key => siteMarkers[key] === marker);
+                if (siteId) {
+                    // Get the site data from DB
+                    getDataById('sites', siteId).then(site => { // siteId is UUID string
+                        if (site) {
+                            const typeMatch = selectedTypes.includes(site.type);
+                            const visitedMatch = (filterVisitedYes && site.visited) || (filterVisitedNo && !site.visited);
+
+                            if (typeMatch && visitedMatch) {
+                                marker.addTo(map); // Show marker
+                            } else {
+                                marker.removeFrom(map); // Hide marker
+                            }
+                        } else {
+                             // Site not found in DB, remove marker from map
+                             markersLayer.removeLayer(marker);
+                             delete siteMarkers[siteId];
+                             console.warn(`Marker found for non-existent site ID: ${siteId}`);
+                        }
+                    }).catch(error => {
+                         console.error(`Error fetching site data for filter: ${siteId}`, error);
+                         // On error, hide the marker just in case
+                         marker.removeFrom(map);
+                    });
+                } else {
+                     // Marker not found in our siteMarkers map, remove it from layer
+                     markersLayer.removeLayer(marker);
+                     console.warn('Found a marker in layer not tracked in siteMarkers map.');
+                }
+            });
+             hideModal('filter-modal');
+        };
+
+         const applyCurrentFilter = () => {
+             // Re-apply the filter based on the current state of filter checkboxes
+             const selectedTypes = Array.from(document.querySelectorAll('#filter-modal input[type="checkbox"][id^="filter-type-"]:checked')).map(cb => cb.value);
+            const filterVisitedYes = document.getElementById('filter-visited-yes').checked;
+            const filterVisitedNo = document.getElementById('filter-visited-no').checked;
+
+             markersLayer.eachLayer(marker => {
+                const siteId = Object.keys(siteMarkers).find(key => siteMarkers[key] === marker);
+                if (siteId) {
+                    getDataById('sites', siteId).then(site => { // siteId is UUID string
+                        if (site) {
+                            const typeMatch = selectedTypes.includes(site.type);
+                            const visitedMatch = (filterVisitedYes && site.visited) || (filterVisitedNo && !site.visited);
+
+                            if (typeMatch && visitedMatch) {
+                                marker.addTo(map); // Show marker
+                            } else {
+                                marker.removeFrom(map); // Hide marker
+                            }
+                        } else {
+                             // Site not found in DB, remove marker from map
+                             markersLayer.removeLayer(marker);
+                             delete siteMarkers[siteId];
+                             console.warn(`Marker found for non-existent site ID: ${siteId}`);
+                        }
+                    }).catch(error => {
+                         console.error(`Error fetching site data for filter: ${siteId}`, error);
+                         // On error, hide the marker just in case
+                         marker.removeFrom(map);
+                    });
+                } else {
+                     // Marker not found in our siteMarkers map, remove it from layer
+                     markersLayer.removeLayer(marker);
+                     console.warn('Found a marker in layer not tracked in siteMarkers map.');
+                }
+            });
+         };
+
+
+        // --- Trail Management ---
+        let isTrailCreationMode = false;
+        let currentTrailSites = []; // Array of site objects {id: UUID string, name, lat, lng}
+        let currentTrailPolyline = null; // Leaflet polyline for the trail being built
+
+        const startTrailCreation = () => {
+            if (waitingForMapClick) {
+                 alert('Finish adding the new site first.');
+                 return;
+            }
+            isTrailCreationMode = true;
+            currentTrailSites = [];
+            if (currentTrailPolyline) {
+                 trailsLayer.removeLayer(currentTrailPolyline);
+                 currentTrailPolyline = null;
+            }
+            document.getElementById('trail-id').value = ''; // Clear ID for new trail
+            document.getElementById('trail-name').value = '';
+            document.getElementById('trail-sites-list').innerHTML = '';
+            document.getElementById('trail-modal-title').textContent = 'Create New Trail';
+            document.getElementById('save-trail-btn').style.display = 'inline-block';
+            document.getElementById('end-trail-btn').style.display = 'inline-block';
+            document.getElementById('delete-trail-btn').style.display = 'none';
+            document.getElementById('trail-mode-indicator').style.display = 'block';
+            showModal('trail-modal');
+            console.log('Trail creation mode started.');
+             alert('Click on the sites (markers) on the map in the order you want them in the trail.');
+        };
+
+         const addSiteToCurrentTrail = (site) => { // site object contains UUID string id
+             // Prevent adding the same site consecutively
+             if (currentTrailSites.length > 0 && currentTrailSites[currentTrailSites.length - 1].id === site.id) {
+                 console.log('Site already added as the last point.');
+                 return;
+             }
+             // Prevent adding a site already in the trail unless it's the first one
+             // if (currentTrailSites.length > 0 && currentTrailSites.some(s => s.id === site.id)) {
+             //      console.log('Site already in trail, adding again.'); // Allow visiting same site multiple times in a loop
+             // }
+
+             currentTrailSites.push({
+                 id: site.id, // UUID string
+                 name: site.name,
+                 lat: site.lat,
+                 lng: site.lng
+             });
+             updateTrailSiteList();
+             redrawCurrentTrailPolyline(); // Redraw the polyline
+             console.log('Added site to trail:', site.name, currentTrailSites);
+         };
+
+         const updateTrailSiteList = () => {
+             const list = document.getElementById('trail-sites-list');
+             list.innerHTML = '';
+             currentTrailSites.forEach((site, index) => {
+                 const li = document.createElement('li');
+                 li.textContent = `${index + 1}. ${site.name || 'Unnamed Site'}`; // Hide ID in list for cleaner UI
+                  li.style.cursor = 'pointer';
+                  li.onclick = () => {
+                       // Zoom to site on map when clicked in the list
+                       map.setView([site.lat, site.lng], 15);
+                       // Open popup if marker exists
+                       if (siteMarkers[site.id]) { // site.id is UUID string
+                            siteMarkers[site.id].openPopup();
+                       }
+                  };
+                 list.appendChild(li);
+             });
+         };
+
+         const redrawCurrentTrailPolyline = () => {
+             if (currentTrailPolyline) {
+                 trailsLayer.removeLayer(currentTrailPolyline);
+                 currentTrailPolyline = null;
+             }
+             if (currentTrailSites.length >= 2) {
+                 const latlngs = currentTrailSites.map(site => [site.lat, site.lng]);
+                 currentTrailPolyline = L.polyline(latlngs, { color: 'red', weight: 4, opacity: 0.7, dashArray: '5, 10' }); // Dotted red line for current trail
+                 trailsLayer.addLayer(currentTrailPolyline);
+             }
+         };
+
+
+        const saveTrail = async () => {
+            const trailId = document.getElementById('trail-id').value; // Will be UUID string or empty
+            const trailName = document.getElementById('trail-name').value.trim();
+
+            if (!trailName) {
+                alert('Trail name is required.');
+                return;
+            }
+            if (currentTrailSites.length < 2) {
+                 alert('A trail requires at least two sites.');
+                 return;
+            }
+
+            const trailData = {
+                name: trailName,
+                siteIds: currentTrailSites.map(site => site.id) // Array of UUID strings
+            };
+
+            try {
+                 let id;
+                 if (trailId) {
+                     trailData.id = trailId; // Use existing UUID string
+                     await updateData('trails', trailData);
+                     id = trailData.id;
+                     console.log('Trail updated:', trailData);
+                 } else {
+                     // Generate UUID for new trail
+                     trailData.id = generateUUID();
+                     id = await addData('trails', trailData); // addData returns the ID
+                     console.log('Trail added:', trailData);
+                 }
+
+                endTrailCreation(); // Also hides modal and removes temp polyline
+                loadTrails(); // Reload trails to display the new/updated one (solid blue line)
+
+            } catch (error) {
+                console.error('Failed to save trail:', error);
+                alert('Failed to save trail.');
+            }
+        };
+
+         const deleteTrail = async () => {
+              const trailId = document.getElementById('trail-id').value; // trailId is UUID string
+             if (!trailId) return;
+
+             if (confirm('Are you sure you want to delete this trail?')) {
+                 try {
+                     await deleteData('trails', trailId); // trailId is UUID string
+                     console.log('Trail deleted:', trailId);
+                     endTrailCreation(); // Also hides modal and removes temp polyline
+                     loadTrails(); // Reload trails to remove the deleted one
+                 } catch (error) {
+                     console.error('Failed to delete trail:', error);
+                     alert('Failed to delete trail.');
+                 }
+             }
+         };
+
+        const endTrailCreation = () => {
+            isTrailCreationMode = false;
+            currentTrailSites = [];
+            if (currentTrailPolyline) {
+                 trailsLayer.removeLayer(currentTrailPolyline);
+                 currentTrailPolyline = null;
+            }
+            document.getElementById('trail-mode-indicator').style.display = 'none';
+            hideModal('trail-modal');
+            console.log('Trail creation mode ended.');
+        };
+
+         const loadTrails = async () => {
+             try {
+                 const trails = await getAllData('trails');
+                 // Clear existing polylines (except the one being built if in creation mode)
+                 trailsLayer.eachLayer(layer => {
+                      if (layer !== currentTrailPolyline) {
+                           trailsLayer.removeLayer(layer);
+                      }
+                 });
+                 for (const id in trailPolylines) {
+                     if (id !== document.getElementById('trail-id').value) { // Don't delete the polyline if we are currently viewing/editing this trail
+                         if (trailPolylines[id]) {
+                             trailsLayer.removeLayer(trailPolylines[id]);
+                         }
+                         delete trailPolylines[id];
+                     }
+                 }
+
+
+                 const allSites = await getAllData('sites'); // Get all sites to find coordinates
+                 const siteMap = new Map(allSites.map(site => [site.id, site])); // Map uses UUID string keys
+
+                 trails.forEach(trail => {
+                     // Only draw if not currently in creation mode for this trail
+                     if (!(isTrailCreationMode && trail.id === document.getElementById('trail-id').value)) {
+                         if (trail.siteIds && trail.siteIds.length >= 2) {
+                             const latlngs = trail.siteIds
+                                 .map(siteId => siteMap.get(siteId)) // siteId is UUID string
+                                 .filter(site => site !== undefined) // Only include sites that exist
+                                 .map(site => [site.lat, site.lng]);
+
+                             if (latlngs.length >= 2) {
+                                  const polyline = L.polyline(latlngs, { color: 'blue', weight: 4, opacity: 0.7 });
+                                  trailsLayer.addLayer(polyline);
+                                  trailPolylines[trail.id] = polyline; // Store using UUID string key
+
+                                  // Add click handler to show trail details
+                                  polyline.on('click', () => {
+                                      showTrailDetails(trail.id); // Pass UUID string
+                                  });
+
+                                  // Add popup to polyline
+                                   polyline.bindPopup(`<strong>Trail: ${trail.name}</strong><br>Sites: ${latlngs.length}`);
+                             } else {
+                                 console.warn(`Trail "${trail.name}" (ID: ${trail.id}) has fewer than 2 valid sites, not drawing polyline.`);
+                             }
+                         } else {
+                             console.warn(`Trail "${trail.name}" (ID: ${trail.id}) has insufficient sites, not drawing polyline.`);
+                         }
+                     }
+                 });
+                 console.log('Trails loaded:', trails.length);
+             } catch (error) {
+                 console.error('Failed to load trails:', error);
+             }
+         };
+
+         const showTrailDetails = async (trailId) => { // trailId is UUID string
+             const trail = await getDataById('trails', trailId); // trailId is UUID string
+             if (!trail) {
+                  alert('Trail not found.');
+                  loadTrails(); // Refresh trail list
+                  return;
+             }
+
+             // If currently in trail creation mode, end it first
+             if (isTrailCreationMode) {
+                 endTrailCreation();
+             }
+
+             document.getElementById('trail-id').value = trail.id; // trail.id is UUID string
+             document.getElementById('trail-name').value = trail.name;
+             document.getElementById('trail-modal-title').textContent = 'Trail Details';
+             document.getElementById('save-trail-btn').style.display = 'inline-block'; // Allow editing trail name
+             document.getElementById('end-trail-btn').style.display = 'none'; // Cannot end a loaded trail
+             document.getElementById('delete-trail-btn').style.display = 'inline-block';
+
+             // Load site details for the list
+             currentTrailSites = []; // Reset and populate from trail data
+             const list = document.getElementById('trail-sites-list');
+             list.innerHTML = '';
+             const allSites = await getAllData('sites');
+             const siteMap = new Map(allSites.map(site => [site.id, site])); // Map uses UUID string keys
+
+             if (trail.siteIds && trail.siteIds.length > 0) {
+                 trail.siteIds.forEach((siteId, index) => { // siteId is UUID string
+                     const site = siteMap.get(siteId); // siteId is UUID string
+                     if (site) {
+                         currentTrailSites.push({ id: site.id, name: site.name, lat: site.lat, lng: site.lng }); // Populate currentTrailSites for potential saving
+                         const li = document.createElement('li');
+                         li.textContent = `${index + 1}. ${site.name || 'Unnamed Site'}`;
+                          li.style.cursor = 'pointer';
+                          li.onclick = () => {
+                               // Zoom to site on map when clicked in the list
+                               map.setView([site.lat, site.lng], 15);
+                               // Open popup if marker exists
+                               if (siteMarkers[site.id]) { // site.id is UUID string
+                                    siteMarkers[site.id].openPopup();
+                               }
+                          };
+                         list.appendChild(li);
+                     } else {
+                         console.warn(`Site with ID ${siteId} not found for trail ${trail.name}`);
+                         const li = document.createElement('li');
+                         li.textContent = `${index + 1}. [Site Not Found] (ID: ${siteId})`;
+                         li.style.color = 'red';
+                         list.appendChild(li);
+                     }
+                 });
+             } else {
+                 list.innerHTML = '<li>This trail has no sites.</li>';
+             }
+
+
+             // Do NOT redraw the temporary polyline here. The persistent polyline is already drawn by loadTrails.
+             // If the user edits the trail name and saves, loadTrails will redraw the blue line.
+             // If the user wants to *edit the sequence* of sites, they would need to delete and recreate the trail, or we'd need a more complex UI. For this version, editing site sequence is not supported.
+
+             showModal('trail-modal');
+         };
+
+         const viewAllTrails = async () => {
+             const trails = await getAllData('trails');
+             const list = document.getElementById('trails-list');
+             list.innerHTML = '';
+
+             if (trails.length === 0) {
+                 list.innerHTML = '<li>No trails created yet.</li>';
+             } else {
+                 trails.forEach(trail => {
+                     const li = document.createElement('li');
+                     li.textContent = `${trail.name} (${trail.siteIds ? trail.siteIds.length : 0} sites)`;
+                     li.style.cursor = 'pointer';
+                     li.onclick = () => {
+                         hideModal('view-trails-modal');
+                         showTrailDetails(trail.id); // Pass UUID string
+                     };
+                     list.appendChild(li);
+                 });
+             }
+             showModal('view-trails-modal');
+         };
+
+
+        // --- Search ---
+        const searchSites = async (query) => {
+            query = query.toLowerCase().trim();
+            const resultsDiv = document.getElementById('search-results');
+            resultsDiv.innerHTML = '';
+
+            if (query.length < 2) { // Don't search for very short queries
+                 return;
+            }
+
+            const sites = await getAllData('sites');
+            const matchingSites = sites.filter(site =>
+                (site.name && site.name.toLowerCase().includes(query)) ||
+                (site.significance && site.significance.toLowerCase().includes(query)) ||
+                (site.duas && site.duas.toLowerCase().includes(query)) ||
+                (site.visitNotes && site.visitNotes.toLowerCase().includes(query)) ||
+                (site.quranHadith && site.quranHadith.toLowerCase().includes(query))
+            );
+
+            if (matchingSites.length === 0) {
+                resultsDiv.innerHTML = '<div>No results found.</div>';
+            } else {
+                matchingSites.forEach(site => {
+                    const div = document.createElement('div');
+                    div.textContent = site.name || 'Unnamed Site';
+                    div.onclick = () => {
+                        // Zoom to site and show details
+                        map.setView([site.lat, site.lng], 15);
+                        showSiteDetails(site.id); // site.id is UUID string
+                         resultsDiv.innerHTML = ''; // Clear search results
+                         document.getElementById('search-input').value = ''; // Clear search input
+                    };
+                    resultsDiv.appendChild(div);
+                });
+            }
+        };
+
+
+        // --- Backup and Restore ---
+        const backupData = async () => {
+            try {
+                const sites = await getAllData('sites');
+                const trails = await getAllData('trails');
+                const data = { sites: sites, trails: trails, version: dbVersion }; // Include version
+                const json = JSON.stringify(data, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `islamic_sites_atlas_backup_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                console.log('Backup created.');
+            } catch (error) {
+                console.error('Backup failed:', error);
+                alert('Backup failed. See console for details.');
+            }
+        };
+
+        const restoreData = () => {
+            if (confirm('Restoring data will overwrite your current data. Are you sure?')) {
+                document.getElementById('restore-file-input').click();
+            }
+        };
+
+        const handleRestoreFile = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+
+                    if (!data || !Array.isArray(data.sites) || !Array.isArray(data.trails)) {
+                        throw new Error('Invalid backup file format.');
+                    }
+
+                    // Optional: Check version compatibility
+                    // If backup version is different, could show a warning or attempt migration
+                    if (data.version && data.version !== dbVersion) {
+                        console.warn(`Backup version mismatch. App version: ${dbVersion}, Backup version: ${data.version}. Attempting restore.`);
+                        // For this simple app, we proceed assuming data structure is compatible enough
+                    } else if (!data.version) {
+                         console.warn('Backup file has no version specified. Assuming compatibility.');
+                    }
+
+
+                    // Clear existing data
+                    await clearStore('sites');
+                    await clearStore('trails');
+                    console.log('Existing data cleared.');
+
+                    // Add restored data
+                    const transaction = db.transaction(['sites', 'trails'], 'readwrite');
+                    const sitesStore = transaction.objectStore('sites');
+                    const trailsStore = transaction.objectStore('trails');
+
+                     let siteAddCount = 0;
+                     let trailAddCount = 0;
+
+                    data.sites.forEach(site => {
+                         // Ensure site has an ID (should have UUID from backup)
+                         if (!site.id) {
+                             console.warn('Site in backup missing ID, generating new one.', site);
+                             site.id = generateUUID(); // Generate if somehow missing
+                         }
+                         // Add the site. If an ID conflict occurs (shouldn't with UUIDs unless backup is bad), it will error.
+                         try {
+                             sitesStore.add(site);
+                             siteAddCount++;
+                         } catch (e) {
+                             console.error('Error adding site during restore:', site, e);
+                         }
+                    });
+
+                    data.trails.forEach(trail => {
+                         // Ensure trail has an ID
+                         if (!trail.id) {
+                              console.warn('Trail in backup missing ID, generating new one.', trail);
+                              trail.id = generateUUID(); // Generate if somehow missing
+                         }
+                         // Ensure siteIds array exists and contains strings (UUIDs)
+                         if (!Array.isArray(trail.siteIds)) {
+                             console.warn('Trail siteIds is not an array, skipping trail:', trail);
+                             return; // Skip this trail
+                         }
+                         trail.siteIds = trail.siteIds.filter(id => typeof id === 'string'); // Filter out non-string IDs
+
+                         // Add the trail
+                         try {
+                             trailsStore.add(trail);
+                             trailAddCount++;
+                         } catch (e) {
+                             console.error('Error adding trail during restore:', trail, e);
+                         }
+                    });
+
+
+                    transaction.oncomplete = () => {
+                        console.log(`Restore successful. Added ${siteAddCount} sites and ${trailAddCount} trails.`);
+                        alert('Data restored successfully.');
+                        loadSites(); // Reload map data
+                        loadTrails();
+                    };
+
+                    transaction.onerror = (event) => {
+                        console.error('Restore transaction failed:', event.target.error);
+                        alert('Restore failed during data import. Some data might be missing.');
+                         // Even if transaction fails, try to reload whatever got in
+                         loadSites();
+                         loadTrails();
+                    };
+
+                } catch (error) {
+                    console.error('Restore failed:', error);
+                    alert('Restore failed: ' + error.message);
+                } finally {
+                    // Clear file input value so the same file can be selected again
+                    event.target.value = '';
+                }
+            };
+            reader.onerror = (e) => {
+                console.error('Error reading file:', e);
+                alert('Error reading file.');
+                 event.target.value = '';
+            };
+            reader.readAsText(file);
+        };
+
+
+        // --- Modal Handling ---
+        const modals = document.querySelectorAll('.modal');
+
+        const showModal = (id) => {
+             modals.forEach(modal => {
+                 if (modal.id === id) {
+                     modal.style.display = 'flex'; // Use flex to center
+                 } else {
+                     modal.style.display = 'none';
+                 }
+             });
+        };
+
+        const hideModal = (id) => {
+             document.getElementById(id).style.display = 'none';
+        };
+
+        // Close modals when clicking the close button or outside the modal content
+        modals.forEach(modal => {
+            // Close button (X)
+            modal.querySelector('.close-button').onclick = () => {
+                hideModal(modal.id);
+                 if (modal.id === 'trail-modal' && isTrailCreationMode) {
+                     // If closing trail modal while in creation mode via X, end mode
+                     endTrailCreation();
+                 } else if (modal.id === 'site-modal' && waitingForMapClick) {
+                      // If closing site modal while waiting for map click, cancel that state
+                      waitingForMapClick = false;
+                 }
+            };
+             // Also handle the 'Cancel' button inside modals
+            modal.querySelectorAll('.close-button-modal').forEach(btn => {
+                 btn.onclick = () => {
+                     hideModal(modal.id);
+                      if (modal.id === 'trail-modal' && isTrailCreationMode) {
+                         // If closing trail modal while in creation mode via Cancel, end mode
+                         endTrailCreation();
+                     } else if (modal.id === 'site-modal' && waitingForMapClick) {
+                         // If closing site modal while waiting for map click, cancel that state
+                         waitingForMapClick = false;
+                     }
+                 };
+            });
+
+            // Close when clicking outside modal content
+            modal.onclick = (event) => {
+                if (event.target === modal) {
+                    hideModal(modal.id);
+                     if (modal.id === 'trail-modal' && isTrailCreationMode) {
+                         // If clicking outside trail modal while in creation mode, end mode
+                         endTrailCreation();
+                     } else if (modal.id === 'site-modal' && waitingForMapClick) {
+                         // If clicking outside site modal while waiting for map click, cancel that state
+                         waitingForMapClick = false;
+                     }
+                }
+            };
+        });
+
+
+        // --- Event Listeners ---
+        document.getElementById('add-site-btn').addEventListener('click', () => {
+             if (isTrailCreationMode) {
+                  alert('End trail creation mode first before adding a new site.');
+                  return;
+             }
+             resetSiteModal();
+             document.getElementById('site-modal-title').textContent = 'Add New Site';
+             document.getElementById('site-id').value = ''; // Clear ID for new site
+             document.getElementById('delete-site-btn').style.display = 'none';
+             // Do NOT show the modal yet. Wait for map click.
+             // Hide any open modals first.
+             modals.forEach(modal => modal.style.display = 'none');
+             alert('Click on the map where you want to add the new site.');
+             // Set flag to indicate we are waiting for a map click
+              waitingForMapClick = true;
+        });
+
+        document.getElementById('save-site-btn').addEventListener('click', saveSite);
+        document.getElementById('delete-site-btn').addEventListener('click', deleteSite); // deleteSite uses UUID from input
+
+        document.getElementById('filter-btn').addEventListener('click', () => showModal('filter-modal'));
+        document.getElementById('apply-filter-btn').addEventListener('click', applyCurrentFilter);
+
+        document.getElementById('start-trail-btn').addEventListener('click', startTrailCreation);
+        document.getElementById('save-trail-btn').addEventListener('click', saveTrail); // saveTrail handles UUIDs
+        document.getElementById('end-trail-btn').addEventListener('click', endTrailCreation);
+        document.getElementById('delete-trail-btn').addEventListener('click', deleteTrail); // deleteTrail uses UUID from input
+        document.getElementById('view-trails-btn').addEventListener('click', viewAllTrails); // viewAllTrails passes UUIDs to showTrailDetails
+
+
+        document.getElementById('search-input').addEventListener('input', (event) => {
+            searchSites(event.target.value); // searchSites handles UUIDs in results click handler
+        });
+
+        document.getElementById('backup-btn').addEventListener('click', backupData); // backupData handles UUIDs
+        document.getElementById('restore-btn').addEventListener('click', restoreData);
+        document.getElementById('restore-file-input').addEventListener('change', handleRestoreFile); // handleRestoreFile expects/handles UUIDs
+
+
+        // --- Initial Load ---
+        // Open the database and initialize the map once the DOM is ready
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await openDB();
+                initMap();
+            } catch (error) {
+                console.error('App failed to initialize:', error);
+                alert('Failed to initialize the application (database error). Check console.');
+            }
+        });
+
+// This is part of the IIFE at the end of your HTML file
+// Make sure addControlsToMap is defined in a scope accessible by initializeMapExtensions,
+// or define it within initializeMapExtensions if preferred.
+// For clarity, defining it here within the IIFE but outside initializeMapExtensions.
+
+function addControlsToMap() {
+    // Check if controls have already been added to prevent duplication
+    // These flags are simple examples; more robust checks might involve querying the map for existing controls.
+    if (window.map && !window.map.searchControlInstance && typeof addMapSearchControl === 'function') {
+        addMapSearchControl(window.map); // addMapSearchControl should ideally store the instance on window.map.searchControlInstance
+    }
+    if (window.map && !window.map.myLocationControlInstance && typeof addMyLocationControl === 'function') {
+        addMyLocationControl(window.map); // Same for myLocationControl
+    }
+}
+
+function initializeMapExtensions() {
+    if (typeof L === 'undefined') {
+        console.error("Leaflet library (L) is not defined. Ensure Leaflet is loaded before this script.");
+        return;
+    }
+
+    if (typeof window.map === 'undefined' || !window.map) {
+        // console.warn("Map object not found. Waiting for map initialization...");
+        setTimeout(initializeMapExtensions, 500);
+        return;
+    }
+
+    // At this point, window.map exists.
+    // Perform more rigorous checks on the map object.
+    // Ensure it's a Leaflet Map and has the .on method (from L.Evented).
+    if (!(window.map instanceof L.Map) || typeof window.map.on !== 'function') {
+        console.error("window.map is not a fully functional Leaflet map instance or core event methods (like .on) are missing. Retrying.", window.map);
+        setTimeout(initializeMapExtensions, 500); // Retry, hoping it becomes valid
+        return;
+    }
+
+    // If we reach here, window.map is likely a valid L.Map instance with .on method.
+    // Check the _loaded flag (internal to Leaflet, indicates if 'load' event has fired)
+    let mapIsLoaded = false;
+    if (typeof window.map._loaded === 'boolean') {
+        mapIsLoaded = window.map._loaded;
+    }
+
+    if (mapIsLoaded) {
+        console.log("Map was already loaded (or _loaded flag is true). Adding controls directly.");
+        addControlsToMap();
+    } else {
+        console.log("Map object found, waiting for map 'load' event to add controls (using .on).");
+        
+        // Define the handler for the 'load' event
+        const loadHandler = function() {
+            console.log("Map 'load' event fired. Adding controls.");
+            addControlsToMap();
+            // Important: Remove this listener after it has run to mimic 'once' behavior
+            if (typeof window.map.off === 'function') {
+                window.map.off('load', loadHandler);
+            }
+            // Clear the flag
+            if (window.map) {
+                delete window.map._loadHandlerAttachedForControls;
+            }
+        };
+        
+        // Attach the 'load' event listener only if one hasn't been attached already by this logic.
+        // This flag helps prevent multiple listeners if initializeMapExtensions is re-entered.
+        if (!window.map._loadHandlerAttachedForControls) {
+            window.map.on('load', loadHandler);
+            window.map._loadHandlerAttachedForControls = true; // Set a flag on the map object
+        } else {
+            console.log("A 'load' handler for controls seems to be already attached. Waiting.");
+        }
+    }
+}
+
+// The rest of your IIFE (addMapSearchControl, addMyLocationControl definitions,
+// and the initial call to initializeMapExtensions) remains the same.
+// For example:
+// function addMapSearchControl(mapInstance) { ... }
+// function addMyLocationControl(mapInstance) { ... }
+// if (document.readyState === 'loading') { ... } else { initializeMapExtensions(); }
+    </script>
+</body>
+</html>
