@@ -21,10 +21,14 @@ Islamic Sites Atlas (MyData) is a personal, offline-first single-file HTML appli
 | Site details popup on map       | نقشے پر سائٹ کی تفصیلات کا پاپ اپ | ![App Screenshot 3](./pic%20(3).png)             |
 | Filtering and trail options     | فلٹرنگ اور ٹریل کے اختیارات      | ![App Screenshot 4](./pic%20(4).png)             |
 
-*(Please ensure `pic (1).png`, `pic (2).png`, `pic (3).png`, and `pic (4).png` are in the same directory as this README.md file for the images to display correctly. The `%20` is for spaces in filenames if they exist.)*
-
-*(براہ کرم یقینی بنائیں کہ `pic (1).png`، `pic (2).png`، `pic (3).png`، اور `pic (4).png` اسی ڈائرکٹری میں ہیں جہاں یہ README.md فائل ہے تاکہ تصاویر صحیح طریقے سے ظاہر ہوں۔ `%20` فائل ناموں میں خالی جگہوں کے لیے ہے اگر وہ موجود ہوں۔)*
-
+<div style="display: flex; flex-wrap: wrap; gap: 10px;"\>
+<img src="./pic%20(5).png" alt="App Screenshot 5" style="width: 48%;"\>
+<img src="./pic%20(6).png" alt="App Screenshot 6" style="width: 48%;"\>
+<img src="./pic%20(7).png" alt="App Screenshot 7" style="width: 48%;"\>
+<img src="./pic%20(8).png" alt="App Screenshot 8" style="width: 48%;"\>
+<img src="./pic%20(9).png" alt="App Screenshot 9" style="width: 48%;"\>
+<img src="./pic%20(10).png" alt="App Screenshot 10" style="width: 48%;"\>
+</div>
 ---
 
 ## ✨ Key Features | اہم خصوصیات ✨
