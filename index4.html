@@ -1009,10 +1009,10 @@
                 
                 // Create custom icon
                 const icon = L.divIcon({
-                    className: `custom-marker ${site.type} ${site.visited ? 'visited' : ''}`,
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 30]
-                });
+    className: `custom-marker ${site.type} ${site.visited ? 'visited' : ''}`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15]
+});
                 
                 const marker = L.marker(pos, {icon: icon}).addTo(map);
                 
@@ -1406,13 +1406,14 @@
                             }
                             
                             f.locationMarker = L.marker([lat, lng], {
-                                icon: L.divIcon({
-                                    className: 'custom-marker',
-                                    html: '📍',
-                                    iconSize: [30, 30],
-                                    iconAnchor: [15, 30]
-                                })
-                            }).addTo(map);
+    icon: L.divIcon({
+        className: 'custom-marker',
+        html: '📍',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+    })
+}).addTo(map);
+
                             
                             f.locationMarker.bindPopup('Your current location').openPopup();
                             
@@ -1533,22 +1534,22 @@
             },
             
             handlePhotoChange: event => {
-                const file = event.target.files;
-                if (!file) return;
-                
-                if (!file.type.match('image.*')) {
-                    f.notify('Please select an image file', 'error');
-                    return;
-                }
-                
-                const reader = new FileReader();
-                reader.onload = e => {
-                    const preview = document.getElementById('photo-preview');
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            },
+    const file = event.target.files[0]; // Get the first file from FileList
+    if (!file) return;
+    
+    if (!file.type.match('image.*')) {
+        f.notify('Please select an image file', 'error');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = e => {
+        const preview = document.getElementById('photo-preview');
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+},
             
             handleSiteSubmit: e => {
                 e.preventDefault();

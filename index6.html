@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Islamic Sites Atlas (MyData) - Yasin Ullah</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
+    <style>
+        /* --- Global Styles & Theme --- */
+        :root {
+            --primary-color: #0a192f; /* Deep navy */
+            --secondary-color: #172a45; /* Lighter navy */
+            --accent-color: #64ffda; /* Bright teal/cyan - for glowing elements */
+            --text-color: #ccd6f6; /* Light blue-gray */
+            --text-muted-color: #8892b0; /* Darker blue-gray */
+            --border-color: #233554;
+            --ancient-parchment: #f5e8c8;
+            --ancient-ink: #4a3b31;
+            --font-main: 'Georgia', 'Times New Roman', serif;
+            --font-ui: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-ui);
+            margin: 0;
+            padding: 0;
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            background-color: #111; /* Dark base for map */
+        }
+        
+        .leaflet-tile-pane {
+            /* filter: sepia(0.3) contrast(0.9) brightness(0.9); */ /* Optional: for ancient map feel */
+        }
+
+        /* --- Sidebar --- */
+        #sidebar {
+            width: 350px;
+            min-width: 300px;
+            background-color: var(--secondary-color);
+            padding: 15px;
+            overflow-y: auto;
+            border-right: 1px solid var(--border-color);
+            box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .sidebar-header h1 {
+            font-family: var(--font-main);
+            font-size: 1.8em;
+            color: var(--accent-color);
+            margin: 0 0 5px 0;
+            text-shadow: 0 0 5px var(--accent-color);
+        }
+        .sidebar-header p {
+            font-size: 0.8em;
+            color: var(--text-muted-color);
+            margin: 0;
+        }
+
+        .sidebar-section {
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 10px;
+            background-color: rgba(10, 25, 47, 0.5); /* Slightly darker than sidebar bg */
+        }
+        .sidebar-section h3 {
+            color: var(--accent-color);
+            margin-top: 0;
+            font-size: 1.1em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+
+        /* --- UI Elements (Buttons, Inputs, etc.) --- */
+        button, input[type="file"]::-webkit-file-upload-button {
+            background-color: var(--accent-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s, box-shadow 0.3s;
+            margin: 5px 0;
+        }
+        button:hover, input[type="file"]::-webkit-file-upload-button:hover {
+            background-color: #52ead1;
+            box-shadow: 0 0 10px var(--accent-color);
+        }
+        button.secondary {
+            background-color: var(--text-muted-color);
+            color: var(--primary-color);
+        }
+        button.secondary:hover {
+            background-color: #77819b;
+            box-shadow: 0 0 8px var(--text-muted-color);
+        }
+        button.danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        button.danger:hover {
+            background-color: #c0392b;
+            box-shadow: 0 0 8px #e74c3c;
+        }
+
+
+        input[type="text"], input[type="search"], textarea, select {
+            width: calc(100% - 22px); /* Full width minus padding and border */
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: var(--primary-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 4px;
+        }
+        input[type="text"]:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 5px var(--accent-color);
+        }
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-muted-color);
+            font-size: 0.9em;
+        }
+        input[type="checkbox"] {
+            margin-right: 5px;
+            accent-color: var(--accent-color);
+        }
+
+        /* --- Modals --- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: var(--secondary-color);
+            margin: auto;
+            padding: 25px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 0 20px rgba(100, 255, 218, 0.3); /* Accent color glow */
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 {
+            color: var(--accent-color);
+            margin: 0;
+            font-family: var(--font-main);
+        }
+        .close-button {
+            color: var(--text-muted-color);
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-button:hover, .close-button:focus {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+        .modal-content img.preview-image {
+            max-width: 100%;
+            max-height: 200px;
+            margin-top: 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* --- Lists in Sidebar --- */
+        .data-list {
+            list-style: none;
+            padding: 0;
+            max-height: 200px; /* Example height, adjust as needed */
+            overflow-y: auto;
+        }
+        .data-list li {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .data-list li:hover {
+            background-color: var(--primary-color);
+            color: var(--accent-color);
+        }
+        .data-list li:last-child {
+            border-bottom: none;
+        }
+
+        /* --- Custom Markers --- */
+        .glowing-marker {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            text-align: center;
+            line-height: 16px; /* Adjust based on icon size */
+            font-weight: bold;
+            color: white;
+            animation: pulse 2s infinite ease-in-out;
+        }
+        /* Type-specific marker styles */
+        .glowing-marker.masjid {
+            background: radial-gradient(circle, #00ff7f 0%, #008000 70%); /* Green tones */
+            box-shadow: 0 0 12px 4px #00ff7f;
+        }
+        .glowing-marker.tomb {
+            background: radial-gradient(circle, #87ceeb 0%, #0000cd 70%); /* Blue tones */
+            box-shadow: 0 0 12px 4px #87ceeb;
+        }
+        .glowing-marker.historical {
+            background: radial-gradient(circle, #ffd700 0%, #b8860b 70%); /* Gold/Brown tones */
+            box-shadow: 0 0 12px 4px #ffd700;
+        }
+        .glowing-marker.other {
+            background: radial-gradient(circle, #d3d3d3 0%, #808080 70%); /* Grey tones */
+            box-shadow: 0 0 12px 4px #d3d3d3;
+        }
+        .glowing-marker.visited {
+            border-color: var(--accent-color); /* Highlight visited sites */
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.15); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* --- Leaflet Popup Customization --- */
+        .leaflet-popup-content-wrapper {
+            background: var(--secondary-color);
+            color: var(--text-color);
+            border-radius: 6px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+        .leaflet-popup-content {
+            font-size: 0.9em;
+        }
+        .leaflet-popup-content h4 {
+            margin: 0 0 10px 0;
+            color: var(--accent-color);
+            font-family: var(--font-main);
+        }
+        .leaflet-popup-content p {
+            margin: 5px 0;
+        }
+        .leaflet-popup-content img.popup-photo {
+            max-width: 100%;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+        .leaflet-popup-tip {
+            background: var(--secondary-color);
+        }
+        .leaflet-popup-close-button {
+            color: var(--text-muted-color) !important;
+        }
+        .leaflet-popup-close-button:hover {
+            color: var(--accent-color) !important;
+        }
+
+        /* --- Trail Display --- */
+        .trail-polyline {
+            /* Styles defined in JS when creating polyline */
+        }
+
+        /* --- Responsive Design --- */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column-reverse; /* Map on top for mobile */
+            }
+            #sidebar {
+                width: 100%;
+                height: 40vh; /* Adjust as needed */
+                min-width: unset;
+                border-right: none;
+                border-top: 1px solid var(--border-color);
+            }
+            #map-container {
+                height: 60vh;
+            }
+            .modal-content {
+                width: 95%;
+            }
+        }
+
+        /* Footer */
+        .app-footer {
+            background-color: var(--primary-color);
+            color: var(--text-muted-color);
+            text-align: center;
+            padding: 8px;
+            font-size: 0.8em;
+            border-top: 1px solid var(--border-color);
+        }
+        .app-footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+        .app-footer a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Helper class */
+        .hidden { display: none !important; }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div id="sidebar">
+            <div class="sidebar-header">
+                <h1>Islamic Sites Atlas</h1>
+                <p>(MyData)</p>
+            </div>
+
+            <div class="sidebar-section">
+                <button id="addSiteBtn" style="width:100%;">Add New Site</button>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Filters</h3>
+                <label for="filterType">Type:</label>
+                <select id="filterType">
+                    <option value="all">All Types</option>
+                    <option value="Masjid">Masjid</option>
+                    <option value="Tomb">Tomb</option>
+                    <option value="Historical">Historical</option>
+                    <option value="Other">Other</option>
+                </select>
+                <label for="filterVisited">Visited:</label>
+                <select id="filterVisited">
+                    <option value="all">All</option>
+                    <option value="yes">Visited</option>
+                    <option value="no">Not Visited</option>
+                </select>
+                <button id="applyFiltersBtn">Apply Filters</button>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Search Sites</h3>
+                <input type="search" id="searchInput" placeholder="Search name, notes...">
+                <button id="searchBtn">Search</button>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Sites (<span id="siteCount">0</span>)</h3>
+                <ul id="sitesList" class="data-list">
+                    <!-- Sites will be listed here -->
+                </ul>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Pilgrimage Trails</h3>
+                <button id="addTrailBtn" style="width:100%;">Create New Trail</button>
+                <ul id="trailsList" class="data-list">
+                    <!-- Trails will be listed here -->
+                </ul>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Data Management</h3>
+                <button id="backupDataBtn">Backup Data</button>
+                <button id="restoreDataBtn">Restore Data</button>
+                <input type="file" id="restoreFilePicker" class="hidden" accept=".json">
+            </div>
+
+            <div class="sidebar-section">
+                <p style="font-size: 0.8em; color: var(--text-muted-color);">
+                    Offline Use: Map tiles are cached by your browser. For best offline map access, pan and zoom over desired areas while online.
+                </p>
+            </div>
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    <div class="app-footer">
+        Islamic Sites Atlas (MyData) by Yasin Ullah (Pakistani).
+        This is a personal, offline-first application.
+    </div>
+
+    <!-- Site Modal -->
+    <div id="siteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="siteModalTitle">Add New Site</h2>
+                <span class="close-button" onclick="closeModal('siteModal')">×</span>
+            </div>
+            <form id="siteForm">
+                <input type="hidden" id="siteId">
+                <label for="siteName">Name:</label>
+                <input type="text" id="siteName" required>
+
+                <label for="siteLat">Latitude:</label>
+                <input type="text" id="siteLat" required readonly>
+
+                <label for="siteLng">Longitude:</label>
+                <input type="text" id="siteLng" required readonly>
+                <small>Click on map to set coordinates, or drag existing marker.</small>
+
+                <label for="siteType">Type:</label>
+                <select id="siteType">
+                    <option value="Masjid">Masjid</option>
+                    <option value="Tomb">Tomb of Scholar</option>
+                    <option value="Historical">Historical Location</option>
+                    <option value="Other">Other</option>
+                </select>
+
+                <label for="siteHistoricalSignificance">Historical Significance:</label>
+                <textarea id="siteHistoricalSignificance"></textarea>
+
+                <label for="siteDuasPractices">Related Duas/Practices:</label>
+                <textarea id="siteDuasPractices"></textarea>
+
+                <label for="siteVisitNotes">Personal Visit Notes:</label>
+                <textarea id="siteVisitNotes"></textarea>
+                
+                <label for="siteQuranHadith">Related Quran/Hadith Snippets:</label>
+                <textarea id="siteQuranHadith"></textarea>
+
+                <label for="sitePhoto">Photo:</label>
+                <input type="file" id="sitePhoto" accept="image/*">
+                <img id="photoPreview" src="#" alt="Photo Preview" class="preview-image hidden"/>
+                <input type="hidden" id="sitePhotoBase64"> <!-- Store base64 string -->
+
+                <label>
+                    <input type="checkbox" id="siteVisited"> Visited
+                </label>
+
+                <button type="submit">Save Site</button>
+                <button type="button" id="deleteSiteBtn" class="danger hidden" onclick="deleteSite()">Delete Site</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Trail Modal -->
+    <div id="trailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="trailModalTitle">Create New Trail</h2>
+                <span class="close-button" onclick="closeModal('trailModal')">×</span>
+            </div>
+            <form id="trailForm">
+                <input type="hidden" id="trailId">
+                <label for="trailName">Trail Name:</label>
+                <input type="text" id="trailName" required>
+
+                <label for="trailDescription">Description:</label>
+                <textarea id="trailDescription"></textarea>
+
+                <label for="trailSites">Select Sites (in order):</label>
+                <select id="trailSitesSelect" multiple size="5" style="height: 150px;">
+                    <!-- Populate with available sites -->
+                </select>
+                <small>Hold Ctrl/Cmd to select multiple sites. Order matters.</small>
+                
+                <button type="submit">Save Trail</button>
+                <button type="button" id="deleteTrailBtn" class="danger hidden" onclick="deleteTrail()">Delete Trail</button>
+            </form>
+        </div>
+    </div>
+
+
+<script>
+// Author: Yasin Ullah (Pakistani)
+// App: Islamic Sites Atlas (MyData)
+
+// --- Constants and Configuration ---
+const DB_NAME = 'IslamicSitesAtlasDB';
+const DB_VERSION = 1;
+const SITES_STORE_NAME = 'sites';
+const TRAILS_STORE_NAME = 'trails';
+
+// --- Global Variables ---
+let map;
+let db;
+let currentEditingSiteId = null;
+let currentEditingTrailId = null;
+let markersLayerGroup = L.layerGroup();
+let trailsLayerGroup = L.layerGroup();
+let tempMarker = null; // For adding new site
+
+// --- Database (IndexedDB) ---
+function initDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onerror = (event) => {
+            console.error("Database error:", event.target.errorCode);
+            reject("Database error: " + event.target.errorCode);
+        };
+
+        request.onupgradeneeded = (event) => {
+            db = event.target.result;
+            if (!db.objectStoreNames.contains(SITES_STORE_NAME)) {
+                const sitesStore = db.createObjectStore(SITES_STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                sitesStore.createIndex('name', 'name', { unique: false });
+                sitesStore.createIndex('type', 'type', { unique: false });
+                sitesStore.createIndex('visited', 'visited', { unique: false });
+            }
+            if (!db.objectStoreNames.contains(TRAILS_STORE_NAME)) {
+                const trailsStore = db.createObjectStore(TRAILS_STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                trailsStore.createIndex('name', 'name', { unique: false });
+            }
+        };
+
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            console.log("Database initialized successfully.");
+            resolve(db);
+        };
+    });
+}
+
+// --- Map Logic (Leaflet) ---
+function initMap() {
+    map = L.map('map').setView([25.0, 45.0], 5); // Centered broadly on Middle East
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors. App by Yasin Ullah.'
+    }).addTo(map);
+
+    markersLayerGroup.addTo(map);
+    trailsLayerGroup.addTo(map);
+
+    map.on('click', function(e) {
+        if (document.getElementById('siteModal').style.display === 'flex' && !currentEditingSiteId) {
+            // If site modal is open for a new site, update lat/lng
+            document.getElementById('siteLat').value = e.latlng.lat.toFixed(6);
+            document.getElementById('siteLng').value = e.latlng.lng.toFixed(6);
+            
+            if (tempMarker) {
+                map.removeLayer(tempMarker);
+            }
+            tempMarker = L.marker(e.latlng, { draggable: true })
+                .addTo(map)
+                .bindPopup("New site location. Drag to adjust.")
+                .openPopup();
+            
+            tempMarker.on('dragend', function(event){
+                var marker = event.target;
+                var position = marker.getLatLng();
+                document.getElementById('siteLat').value = position.lat.toFixed(6);
+                document.getElementById('siteLng').value = position.lng.toFixed(6);
+            });
+        }
+    });
+}
+
+// --- Site Management ---
+function openSiteModal(siteId = null) {
+    const form = document.getElementById('siteForm');
+    form.reset();
+    document.getElementById('photoPreview').classList.add('hidden');
+    document.getElementById('sitePhotoBase64').value = '';
+    currentEditingSiteId = siteId;
+
+    if (tempMarker) {
+        map.removeLayer(tempMarker);
+        tempMarker = null;
+    }
+
+    if (siteId) {
+        document.getElementById('siteModalTitle').textContent = 'Edit Site';
+        document.getElementById('deleteSiteBtn').classList.remove('hidden');
+        const transaction = db.transaction([SITES_STORE_NAME], 'readonly');
+        const store = transaction.objectStore(SITES_STORE_NAME);
+        const request = store.get(siteId);
+
+        request.onsuccess = (event) => {
+            const site = event.target.result;
+            if (site) {
+                document.getElementById('siteId').value = site.id;
+                document.getElementById('siteName').value = site.name;
+                document.getElementById('siteLat').value = site.lat;
+                document.getElementById('siteLng').value = site.lng;
+                document.getElementById('siteType').value = site.type;
+                document.getElementById('siteHistoricalSignificance').value = site.historicalSignificance || '';
+                document.getElementById('siteDuasPractices').value = site.duasPractices || '';
+                document.getElementById('siteVisitNotes').value = site.visitNotes || '';
+                document.getElementById('siteQuranHadith').value = site.quranHadith || '';
+                document.getElementById('siteVisited').checked = site.visited;
+                if (site.photoBase64) {
+                    document.getElementById('photoPreview').src = site.photoBase64;
+                    document.getElementById('photoPreview').classList.remove('hidden');
+                    document.getElementById('sitePhotoBase64').value = site.photoBase64;
+                }
+            }
+        };
+    } else {
+        document.getElementById('siteModalTitle').textContent = 'Add New Site';
+        document.getElementById('deleteSiteBtn').classList.add('hidden');
+        // Prompt user to click map
+        alert("Click on the map to choose a location for the new site.");
+    }
+    document.getElementById('siteModal').style.display = 'flex';
+}
+
+document.getElementById('siteForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    saveSite();
+});
+
+function saveSite() {
+    const siteData = {
+        name: document.getElementById('siteName').value,
+        lat: parseFloat(document.getElementById('siteLat').value),
+        lng: parseFloat(document.getElementById('siteLng').value),
+        type: document.getElementById('siteType').value,
+        historicalSignificance: document.getElementById('siteHistoricalSignificance').value,
+        duasPractices: document.getElementById('siteDuasPractices').value,
+        visitNotes: document.getElementById('siteVisitNotes').value,
+        quranHadith: document.getElementById('siteQuranHadith').value,
+        photoBase64: document.getElementById('sitePhotoBase64').value,
+        visited: document.getElementById('siteVisited').checked,
+        updatedAt: new Date().toISOString()
+    };
+
+    if (isNaN(siteData.lat) || isNaN(siteData.lng)) {
+        alert("Invalid coordinates. Please click on the map or ensure coordinates are filled.");
+        return;
+    }
+
+    const transaction = db.transaction([SITES_STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(SITES_STORE_NAME);
+    let request;
+
+    if (currentEditingSiteId) {
+        siteData.id = currentEditingSiteId;
+        request = store.put(siteData);
+    } else {
+        siteData.createdAt = new Date().toISOString();
+        request = store.add(siteData);
+    }
+
+    request.onsuccess = () => {
+        closeModal('siteModal');
+        loadSitesFromDB();
+        currentEditingSiteId = null;
+        if (tempMarker) {
+            map.removeLayer(tempMarker);
+            tempMarker = null;
+        }
+    };
+    request.onerror = (event) => {
+        console.error("Error saving site:", event.target.error);
+        alert("Error saving site: " + event.target.error);
+    };
+}
+
+function deleteSite() {
+    if (!currentEditingSiteId || !confirm("Are you sure you want to delete this site? This action cannot be undone.")) {
+        return;
+    }
+    const transaction = db.transaction([SITES_STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(SITES_STORE_NAME);
+    const request = store.delete(currentEditingSiteId);
+
+    request.onsuccess = () => {
+        // Also remove from any trails
+        removeSiteFromAllTrails(currentEditingSiteId).then(() => {
+            closeModal('siteModal');
+            loadSitesFromDB();
+            loadTrailsFromDB(); // Refresh trails in case site was part of one
+            currentEditingSiteId = null;
+        });
+    };
+    request.onerror = (event) => {
+        console.error("Error deleting site:", event.target.error);
+        alert("Error deleting site: " + event.target.error);
+    };
+}
+
+async function removeSiteFromAllTrails(siteId) {
+    const transaction = db.transaction([TRAILS_STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(TRAILS_STORE_NAME);
+    const request = store.getAll();
+
+    return new Promise((resolve, reject) => {
+        request.onsuccess = (event) => {
+            const trails = event.target.result;
+            let updatePromises = [];
+            trails.forEach(trail => {
+                const initialLength = trail.siteIds.length;
+                trail.siteIds = trail.siteIds.filter(id => id !== siteId);
+                if (trail.siteIds.length !== initialLength) {
+                    updatePromises.push(new Promise((res, rej) => {
+                        const updateReq = store.put(trail);
+                        updateReq.onsuccess = res;
+                        updateReq.onerror = rej;
+                    }));
+                }
+            });
+            Promise.all(updatePromises).then(resolve).catch(reject);
+        };
+        request.onerror = (event) => {
+            console.error("Error fetching trails for site removal:", event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+
+document.getElementById('sitePhoto').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('photoPreview').src = e.target.result;
+            document.getElementById('photoPreview').classList.remove('hidden');
+            document.getElementById('sitePhotoBase64').value = e.target.result; // Store base64
+        }
+        reader.readAsDataURL(file);
+    }
+});
+
+function loadSitesFromDB(filters = {}, searchTerm = "") {
+    markersLayerGroup.clearLayers();
+    const sitesListUI = document.getElementById('sitesList');
+    sitesListUI.innerHTML = '';
+    document.getElementById('siteCount').textContent = '0';
+
+    const transaction = db.transaction([SITES_STORE_NAME], 'readonly');
+    const store = transaction.objectStore(SITES_STORE_NAME);
+    const request = store.getAll();
+    let siteCount = 0;
+
+    request.onsuccess = (event) => {
+        let sites = event.target.result;
+
+        // Apply filters
+        if (filters.type && filters.type !== 'all') {
+            sites = sites.filter(site => site.type === filters.type);
+        }
+        if (filters.visited !== undefined && filters.visited !== 'all') {
+            const visitedBool = filters.visited === 'yes';
+            sites = sites.filter(site => site.visited === visitedBool);
+        }
+
+        // Apply search
+        if (searchTerm) {
+            const lowerSearchTerm = searchTerm.toLowerCase();
+            sites = sites.filter(site => 
+                (site.name && site.name.toLowerCase().includes(lowerSearchTerm)) ||
+                (site.historicalSignificance && site.historicalSignificance.toLowerCase().includes(lowerSearchTerm)) ||
+                (site.duasPractices && site.duasPractices.toLowerCase().includes(lowerSearchTerm)) ||
+                (site.visitNotes && site.visitNotes.toLowerCase().includes(lowerSearchTerm)) ||
+                (site.quranHadith && site.quranHadith.toLowerCase().includes(lowerSearchTerm))
+            );
+        }
+        
+        sites.forEach(site => {
+            addMarkerToMap(site);
+            const listItem = document.createElement('li');
+            listItem.textContent = site.name;
+            listItem.dataset.siteId = site.id;
+            listItem.onclick = () => {
+                map.setView([site.lat, site.lng], 15);
+                // Find marker and open popup
+                markersLayerGroup.eachLayer(marker => {
+                    if (marker.siteId === site.id) {
+                        marker.openPopup();
+                    }
+                });
+            };
+            sitesListUI.appendChild(listItem);
+            siteCount++;
+        });
+        document.getElementById('siteCount').textContent = siteCount;
+        populateTrailSitesSelect(sites); // Update sites for trail creation
+    };
+    request.onerror = (event) => {
+        console.error("Error loading sites:", event.target.error);
+    };
+}
+
+function addMarkerToMap(site) {
+    const markerIcon = L.divIcon({
+        className: `glowing-marker ${site.type.toLowerCase()} ${site.visited ? 'visited' : ''}`,
+        html: `<span title="${site.type.charAt(0)}">${site.type.charAt(0).toUpperCase()}</span>`, // First letter of type
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+        popupAnchor: [0, -10]
+    });
+
+    const marker = L.marker([site.lat, site.lng], { icon: markerIcon, draggable: true });
+    marker.siteId = site.id; // Store site ID with marker
+
+    let popupContent = `<h4>${site.name}</h4>`;
+    popupContent += `<p><strong>Type:</strong> ${site.type}</p>`;
+    if (site.historicalSignificance) popupContent += `<p><strong>Significance:</strong> ${truncateText(site.historicalSignificance,100)}</p>`;
+    if (site.visitNotes) popupContent += `<p><strong>Visit Notes:</strong> ${truncateText(site.visitNotes,100)}</p>`;
+    if (site.photoBase64) popupContent += `<img src="${site.photoBase64}" alt="${site.name}" class="popup-photo"/>`;
+    popupContent += `<button onclick="openSiteModal(${site.id})">Edit Details</button>`;
+    
+    marker.bindPopup(popupContent);
+
+    marker.on('dragend', function(event) {
+        const newLatLng = event.target.getLatLng();
+        const siteId = event.target.siteId;
+        updateSiteCoordinates(siteId, newLatLng.lat, newLatLng.lng);
+    });
+    
+    markersLayerGroup.addLayer(marker);
+}
+
+function updateSiteCoordinates(siteId, lat, lng) {
+    const transaction = db.transaction([SITES_STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(SITES_STORE_NAME);
+    const request = store.get(siteId);
+
+    request.onsuccess = (event) => {
+        const site = event.target.result;
+        if (site) {
+            site.lat = lat;
+            site.lng = lng;
+            site.updatedAt = new Date().toISOString();
+            const updateRequest = store.put(site);
+            updateRequest.onsuccess = () => {
+                console.log(`Site ${siteId} coordinates updated.`);
+                // No need to reload all sites, just this marker's position is updated by Leaflet
+            };
+            updateRequest.onerror = (err) => console.error("Error updating site coordinates in DB:", err.target.error);
+        }
+    };
+    request.onerror = (err) => console.error("Error fetching site for coordinate update:", err.target.error);
+}
+
+
+function truncateText(text, maxLength) {
+    if (!text) return '';
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+}
+
+// --- Trail Management ---
+function openTrailModal(trailId = null) {
+    const form = document.getElementById('trailForm');
+    form.reset();
+    currentEditingTrailId = trailId;
+    populateTrailSitesSelect(); // Ensure select is populated with current sites
+
+    if (trailId) {
+        document.getElementById('trailModalTitle').textContent = 'Edit Trail';
+        document.getElementById('deleteTrailBtn').classList.remove('hidden');
+        const transaction = db.transaction([TRAILS_STORE_NAME], 'readonly');
+        const store = transaction.objectStore(TRAILS_STORE_NAME);
+        const request = store.get(trailId);
+
+        request.onsuccess = (event) => {
+            const trail = event.target.result;
+            if (trail) {
+                document.getElementById('trailId').value = trail.id;
+                document.getElementById('trailName').value = trail.name;
+                document.getElementById('trailDescription').value = trail.description || '';
+                
+                const trailSitesSelect = document.getElementById('trailSitesSelect');
+                trail.siteIds.forEach(siteId => {
+                    for (let option of trailSitesSelect.options) {
+                        if (parseInt(option.value) === siteId) {
+                            option.selected = true;
+                        }
+                    }
+                });
+            }
+        };
+    } else {
+        document.getElementById('trailModalTitle').textContent = 'Create New Trail';
+        document.getElementById('deleteTrailBtn').classList.add('hidden');
+    }
+    document.getElementById('trailModal').style.display = 'flex';
+}
+
+document.getElementById('trailForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    saveTrail();
+});
+
+function saveTrail() {
+    const selectedSiteOptions = document.getElementById('trailSitesSelect').selectedOptions;
+    const siteIds = Array.from(selectedSiteOptions).map(opt => parseInt(opt.value));
+
+    if (siteIds.length < 2) {
+        alert("A trail must have at least two sites.");
+        return;
+    }
+
+    const trailData = {
+        name: document.getElementById('trailName').value,
+        description: document.getElementById('trailDescription').value,
+        siteIds: siteIds,
+        updatedAt: new Date().toISOString()
+    };
+
+    const transaction = db.transaction([TRAILS_STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(TRAILS_STORE_NAME);
+    let request;
+
+    if (currentEditingTrailId) {
+        trailData.id = currentEditingTrailId;
+        request = store.put(trailData);
+    } else {
+        trailData.createdAt = new Date().toISOString();
+        request = store.add(trailData);
+    }
+
+    request.onsuccess = () => {
+        closeModal('trailModal');
+        loadTrailsFromDB();
+        currentEditingTrailId = null;
+    };
+    request.onerror = (event) => {
+        console.error("Error saving trail:", event.target.error);
+        alert("Error saving trail: " + event.target.error);
+    };
+}
+
+function deleteTrail() {
+    if (!currentEditingTrailId || !confirm("Are you sure you want to delete this trail?")) {
+        return;
+    }
+    const transaction = db.transaction([TRAILS_STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(TRAILS_STORE_NAME);
+    const request = store.delete(currentEditingTrailId);
+
+    request.onsuccess = () => {
+        closeModal('trailModal');
+        loadTrailsFromDB();
+        currentEditingTrailId = null;
+    };
+    request.onerror = (event) => {
+        console.error("Error deleting trail:", event.target.error);
+        alert("Error deleting trail: " + event.target.error);
+    };
+}
+
+function loadTrailsFromDB() {
+    trailsLayerGroup.clearLayers();
+    const trailsListUI = document.getElementById('trailsList');
+    trailsListUI.innerHTML = '';
+
+    const transaction = db.transaction([TRAILS_STORE_NAME], 'readonly');
+    const store = transaction.objectStore(TRAILS_STORE_NAME);
+    const request = store.getAll();
+
+    request.onsuccess = (event) => {
+        const trails = event.target.result;
+        trails.forEach(trail => {
+            const listItem = document.createElement('li');
+            listItem.textContent = trail.name;
+            listItem.dataset.trailId = trail.id;
+            listItem.onclick = () => displayTrailOnMap(trail.id);
+            listItem.oncontextmenu = (e) => { // Right click to edit
+                e.preventDefault();
+                openTrailModal(trail.id);
+            };
+            trailsListUI.appendChild(listItem);
+        });
+    };
+    request.onerror = (event) => {
+        console.error("Error loading trails:", event.target.error);
+    };
+}
+
+async function displayTrailOnMap(trailId) {
+    trailsLayerGroup.clearLayers(); // Clear previous trails
+
+    const trail = await getTrailById(trailId);
+    if (!trail || !trail.siteIds || trail.siteIds.length === 0) return;
+
+    const sitePromises = trail.siteIds.map(id => getSiteById(id));
+    const sites = (await Promise.all(sitePromises)).filter(site => site != null);
+
+    if (sites.length < 2) return;
+
+    const latLngs = sites.map(site => [site.lat, site.lng]);
+    
+    const trailPolyline = L.polyline(latLngs, { 
+        color: 'var(--accent-color)', 
+        weight: 3,
+        opacity: 0.8,
+        dashArray: '5, 10',
+        className: 'trail-polyline'
+    }).addTo(trailsLayerGroup);
+
+    map.fitBounds(trailPolyline.getBounds().pad(0.1)); // Zoom to trail
+
+    // Highlight markers in the trail
+    markersLayerGroup.eachLayer(marker => {
+        if (trail.siteIds.includes(marker.siteId)) {
+            // Could add a temporary class or style to highlight
+            // For now, just opening popup of the first site
+        }
+    });
+    const firstSiteMarker = findMarkerBySiteId(sites[0].id);
+    if (firstSiteMarker) firstSiteMarker.openPopup();
+}
+
+function findMarkerBySiteId(siteId) {
+    let foundMarker = null;
+    markersLayerGroup.eachLayer(marker => {
+        if (marker.siteId === siteId) {
+            foundMarker = marker;
+        }
+    });
+    return foundMarker;
+}
+
+
+function getSiteById(id) {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([SITES_STORE_NAME], 'readonly');
+        const store = transaction.objectStore(SITES_STORE_NAME);
+        const request = store.get(id);
+        request.onsuccess = (event) => resolve(event.target.result);
+        request.onerror = (event) => reject(event.target.error);
+    });
+}
+
+function getTrailById(id) {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([TRAILS_STORE_NAME], 'readonly');
+        const store = transaction.objectStore(TRAILS_STORE_NAME);
+        const request = store.get(id);
+        request.onsuccess = (event) => resolve(event.target.result);
+        request.onerror = (event) => reject(event.target.error);
+    });
+}
+
+function populateTrailSitesSelect(allSites = null) {
+    const selectElement = document.getElementById('trailSitesSelect');
+    selectElement.innerHTML = ''; // Clear existing options
+
+    const populate = (sites) => {
+        sites.forEach(site => {
+            const option = document.createElement('option');
+            option.value = site.id;
+            option.textContent = site.name;
+            selectElement.appendChild(option);
+        });
+    };
+
+    if (allSites) { // If sites are passed (e.g. after filtering)
+        populate(allSites);
+    } else { // Fetch all sites if not provided
+        const transaction = db.transaction([SITES_STORE_NAME], 'readonly');
+        const store = transaction.objectStore(SITES_STORE_NAME);
+        const request = store.getAll();
+        request.onsuccess = (event) => {
+            populate(event.target.result);
+        };
+        request.onerror = (event) => {
+            console.error("Error populating trail sites select:", event.target.error);
+        };
+    }
+}
+
+
+// --- UI Management ---
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+    if (modalId === 'siteModal' && tempMarker) {
+        map.removeLayer(tempMarker);
+        tempMarker = null;
+    }
+}
+
+// --- Filtering & Search ---
+document.getElementById('applyFiltersBtn').addEventListener('click', () => {
+    const type = document.getElementById('filterType').value;
+    const visited = document.getElementById('filterVisited').value;
+    const searchTerm = document.getElementById('searchInput').value;
+    loadSitesFromDB({ type, visited }, searchTerm);
+});
+
+document.getElementById('searchBtn').addEventListener('click', () => {
+    document.getElementById('applyFiltersBtn').click(); // Trigger filter logic which includes search
+});
+document.getElementById('searchInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        document.getElementById('applyFiltersBtn').click();
+    }
+});
+
+
+// --- Backup & Restore ---
+document.getElementById('backupDataBtn').addEventListener('click', backupData);
+document.getElementById('restoreDataBtn').addEventListener('click', () => {
+    document.getElementById('restoreFilePicker').click();
+});
+document.getElementById('restoreFilePicker').addEventListener('change', handleRestoreFile);
+
+async function backupData() {
+    try {
+        const sitesTransaction = db.transaction([SITES_STORE_NAME], 'readonly');
+        const sitesStore = sitesTransaction.objectStore(SITES_STORE_NAME);
+        const sitesRequest = sitesStore.getAll();
+
+        const sites = await new Promise((resolve, reject) => {
+            sitesRequest.onsuccess = () => resolve(sitesRequest.result);
+            sitesRequest.onerror = () => reject(sitesRequest.error);
+        });
+
+        const trailsTransaction = db.transaction([TRAILS_STORE_NAME], 'readonly');
+        const trailsStore = trailsTransaction.objectStore(TRAILS_STORE_NAME);
+        const trailsRequest = trailsStore.getAll();
+        
+        const trails = await new Promise((resolve, reject) => {
+            trailsRequest.onsuccess = () => resolve(trailsRequest.result);
+            trailsRequest.onerror = () => reject(trailsRequest.error);
+        });
+
+        const backupObject = {
+            sites: sites,
+            trails: trails,
+            backupDate: new Date().toISOString(),
+            appName: "IslamicSitesAtlasMyData"
+        };
+
+        const jsonData = JSON.stringify(backupObject, null, 2);
+        const blob = new Blob([jsonData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const dateStr = new Date().toISOString().slice(0,10);
+        a.download = `islamic_sites_atlas_backup_${dateStr}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        alert("Data backup successful!");
+
+    } catch (error) {
+        console.error("Backup failed:", error);
+        alert("Backup failed: " + error.message);
+    }
+}
+
+function handleRestoreFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!confirm("Restoring data will overwrite all current data. Are you sure you want to proceed?")) {
+        event.target.value = null; // Reset file picker
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const backupObject = JSON.parse(e.target.result);
+            if (backupObject.appName !== "IslamicSitesAtlasMyData" || !backupObject.sites || !backupObject.trails) {
+                throw new Error("Invalid backup file format.");
+            }
+
+            // Clear existing data
+            await clearObjectStore(SITES_STORE_NAME);
+            await clearObjectStore(TRAILS_STORE_NAME);
+
+            // Import sites
+            const sitesTransaction = db.transaction([SITES_STORE_NAME], 'readwrite');
+            const sitesStore = sitesTransaction.objectStore(SITES_STORE_NAME);
+            for (const site of backupObject.sites) {
+                // Remove 'id' if it exists to allow auto-increment, or handle potential conflicts if IDs are preserved
+                // For simplicity, let's assume IDs are preserved if they exist, or auto-generated if not.
+                // However, for a clean restore, it's often better to let DB generate new IDs.
+                // For this implementation, we will re-insert with original IDs if present.
+                // Or, if keyPath is autoIncrement, we should remove 'id' before adding.
+                // Since our keyPath is `id` and autoIncrement is true, we must remove `id` for `add`.
+                // If we want to preserve IDs, we should use `put` and not rely on autoIncrement for restore.
+                // For robust restore, it's better to remove ID and let it auto-increment.
+                // But if trails reference site IDs, this becomes complex.
+                // Let's assume IDs are critical and try to preserve them with `put`.
+                // This means `id` should NOT be autoIncrement if we want to restore IDs.
+                // Or, we must re-map IDs.
+                // For now: if 'id' exists, use 'put', otherwise 'add'.
+                // The current setup (autoIncrement: true) means we should NOT provide 'id' on add.
+                // Let's simplify: clear store, then add items without IDs, letting new ones be generated.
+                // This means trails will break if they rely on old IDs.
+                // A better approach: when restoring, if IDs are present, use PUT.
+                // If object store uses autoIncrement, this means we can't specify ID.
+                // This is a common challenge with IndexedDB restores.
+                // Easiest for now: remove ID before adding, and accept trail IDs might be broken.
+                // A more complex solution would involve mapping old IDs to new IDs.
+
+                // Let's try to preserve IDs using put. This might conflict if store is empty and autoIncrement tries to start from 1.
+                // Best practice: if IDs are to be preserved, the object store should NOT have autoIncrement: true
+                // OR, during restore, temporarily disable autoIncrement logic if possible (not directly with IndexedDB API).
+                // Given the setup, we will use `put`. If an ID is provided, it will be used. If not, it will be auto-generated.
+                // This should work if the backup data HAS IDs.
+                
+                // Ensure `id` is part of the object for `put` to work as expected with explicit key.
+                // If `id` is not in `site`, `put` will act like `add` and auto-generate.
+                // So, this strategy is fine.
+                sitesStore.put(site); 
+            }
+            
+            // Import trails
+            const trailsTransaction = db.transaction([TRAILS_STORE_NAME], 'readwrite');
+            const trailsStore = trailsTransaction.objectStore(TRAILS_STORE_NAME);
+            for (const trail of backupObject.trails) {
+                trailsStore.put(trail); // Similar logic for trails
+            }
+
+            await Promise.all([
+                new Promise(r => sitesTransaction.oncomplete = r),
+                new Promise(r => trailsTransaction.oncomplete = r)
+            ]);
+
+            alert("Data restored successfully!");
+            loadSitesFromDB();
+            loadTrailsFromDB();
+
+        } catch (error) {
+            console.error("Restore failed:", error);
+            alert("Restore failed: " + error.message + ". Ensure it's a valid backup file.");
+        } finally {
+            event.target.value = null; // Reset file picker
+        }
+    };
+    reader.readAsText(file);
+}
+
+function clearObjectStore(storeName) {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([storeName], 'readwrite');
+        const store = transaction.objectStore(storeName);
+        const request = store.clear();
+        request.onsuccess = () => resolve();
+        request.onerror = (event) => {
+            console.error(`Error clearing store ${storeName}:`, event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+
+// --- Event Listeners ---
+document.getElementById('addSiteBtn').addEventListener('click', () => openSiteModal());
+document.getElementById('addTrailBtn').addEventListener('click', () => openTrailModal());
+
+// Close modals when clicking outside content (optional, good UX)
+window.onclick = function(event) {
+    const siteModal = document.getElementById('siteModal');
+    const trailModal = document.getElementById('trailModal');
+    if (event.target == siteModal) {
+        closeModal('siteModal');
+    }
+    if (event.target == trailModal) {
+        closeModal('trailModal');
+    }
+}
+
+// --- Initialization ---
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await initDB();
+        initMap();
+        loadSitesFromDB();
+        loadTrailsFromDB();
+    } catch (error) {
+        console.error("Initialization failed:", error);
+        alert("Application could not start. Please check console for errors. " + error);
+    }
+});
+
+
+
+
+</script>
+</body>
+</html>
