@@ -60,7 +60,7 @@ Islamic Sites Atlas (MyData) is a personal, offline-first single-file HTML appli
 
 ## 🚀 How to Use | استعمال کرنے کا طریقہ 🚀
 
-1.  **Download | ڈاؤن لوڈ کریں:** Download the `IslamicSitesAtlas.html` (or the specific filename you use) file. | `IslamicSitesAtlas.html` (یا جو بھی مخصوص فائل نام آپ استعمال کرتے ہیں) فائل ڈاؤن لوڈ کریں۔
+1.  **Download | ڈاؤن لوڈ کریں:** Download the `index{1,2,3,4,5,6}.html.html` file. | `index{1,2,3,4,5,6}.html` فائل ڈاؤن لوڈ کریں۔
 2.  **Open in Browser | براؤزر میں کھولیں:** Open the downloaded HTML file in any modern web browser (like Chrome, Firefox, Edge). | ڈاؤن لوڈ کی گئی ایچ ٹی ایم ایل فائل کو کسی بھی جدید ویب براؤزر (جیسے کروم، فائر فاکس، ایج) میں کھولیں۔
 3.  **Start Mapping! | نقشہ سازی شروع کریں!** No installation needed. All data is saved in your browser. | کسی انسٹالیشن کی ضرورت نہیں۔ تمام ڈیٹا آپ کے براؤزر میں محفوظ ہو جائے گا۔
 
